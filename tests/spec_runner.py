@@ -15,7 +15,10 @@ from typing import Any
 from uuid import UUID
 
 
-SUPPORTED_API_VERSION = "0.1"
+SUPPORTED_API_VERSIONS: frozenset[str] = frozenset({"0.1", "0.2"})
+# Canonical "preferred" version used by tests that need to pick one
+# concrete version - the latest supported, so new fixtures land under v0.2/.
+SUPPORTED_API_VERSION = "0.2"
 SPEC_DIR = Path(__file__).resolve().parent / "spec"
 PLACEHOLDER_UUID = "00000000-0000-0000-0000-000000000001"
 

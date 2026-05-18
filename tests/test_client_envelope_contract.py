@@ -89,3 +89,26 @@ def test_envelope_spec_loads():
     """Sanity: the meta-spec parses and declares v0.1."""
     assert ENVELOPE_SPEC["envelope_version"] == "0.1"
     assert "0.1" in ENVELOPE_SPEC["version_validation"]["supported"]
+
+
+@respx.mock
+@pytest.mark.asyncio
+async def test_accepts_v0_2_envelope(client: DefernoClient):
+    """During the v0.1->v0.2 cutover window, the client accepts both envelopes."""
+    respx.get(f"{BASE}/tasks").respond(
+        json={"version": "0.2", "data": [{"id": "t1", "title": "Hi"}], "error": None}
+    )
+    result = await client.list_tasks()
+    assert result == [{"id": "t1", "title": "Hi"}]
+
+
+@respx.mock
+@pytest.mark.asyncio
+async def test_rejects_unsupported_version(client: DefernoClient):
+    """Anything outside {0.1, 0.2} is a contract violation."""
+    respx.get(f"{BASE}/tasks").respond(
+        json={"version": "0.3", "data": [], "error": None}
+    )
+    with pytest.raises(DefernoError) as exc_info:
+        await client.list_tasks()
+    assert "0.3" in str(exc_info.value)

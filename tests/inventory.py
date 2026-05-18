@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from tests.endpoint_registry import ENDPOINTS
-from tests.spec_runner import SUPPORTED_API_VERSION
+from tests.spec_runner import SUPPORTED_API_VERSION, SUPPORTED_API_VERSIONS
 
 SPEC_DIR = Path(__file__).resolve().parent / "spec"
 
@@ -79,17 +79,28 @@ def parse_architecture_md(path: Path) -> list[DocEndpoint]:
     return out
 
 
-def fixtures_on_disk(version: str = SUPPORTED_API_VERSION) -> set[tuple[str, str, str]]:
-    """Return ``{(method, path_template, operation), ...}`` from disk."""
-    base = SPEC_DIR / f"v{version}"
+def fixtures_on_disk(
+    versions: frozenset[str] | set[str] | None = None,
+) -> set[tuple[str, str, str]]:
+    """Return ``{(method, path_template, operation), ...}`` from disk.
+
+    Walks every supported version directory (``tests/spec/v0.1/``,
+    ``tests/spec/v0.2/``, ...) and unions the fixtures, so the cross-check
+    stays green during the v0.1->v0.2 cutover window when fixtures live
+    under either version.
+    """
+    if versions is None:
+        versions = SUPPORTED_API_VERSIONS
     out: set[tuple[str, str, str]] = set()
-    if not base.exists():
-        return out
-    for p in sorted(base.rglob("*.json")):
-        if p.name == "_envelope.json":
+    for version in sorted(versions):
+        base = SPEC_DIR / f"v{version}"
+        if not base.exists():
             continue
-        data = json.loads(p.read_text(encoding="utf-8"))
-        out.add((data["method"].upper(), data["path_template"], data["operation"]))
+        for p in sorted(base.rglob("*.json")):
+            if p.name == "_envelope.json":
+                continue
+            data = json.loads(p.read_text(encoding="utf-8"))
+            out.add((data["method"].upper(), data["path_template"], data["operation"]))
     return out
 
 

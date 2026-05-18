@@ -19,6 +19,7 @@ from defernowork_mcp.client import DefernoClient
 from tests.spec_runner import (
     Fixture,
     PLACEHOLDER_UUID,
+    SUPPORTED_API_VERSIONS,
     assert_response_matches_shape,
     discover_backend_fixtures,
     substitute_path,
@@ -31,7 +32,12 @@ BASE = "http://test:3000/api"
 
 
 def _tool_fixtures() -> list[Fixture]:
-    return [f for f in discover_backend_fixtures() if f.mcp_tool]
+    return [
+        f
+        for v in sorted(SUPPORTED_API_VERSIONS)
+        for f in discover_backend_fixtures(v)
+        if f.mcp_tool
+    ]
 
 
 def _ids(fixtures: list[Fixture]) -> list[str]:

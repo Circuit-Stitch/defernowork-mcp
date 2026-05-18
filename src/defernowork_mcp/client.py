@@ -8,7 +8,14 @@ from urllib.parse import quote, urlencode
 
 import httpx
 
-SUPPORTED_API_VERSION = "0.1"
+# During the v0.1 -> v0.2 backend cutover window the MCP server accepts
+# either envelope so it doesn't go dark for the hours/days the backend
+# takes to flip API_VERSION. Once the backend has settled on "0.2" and a
+# rollback to "0.1" is no longer plausible, drop "0.1" from this set.
+SUPPORTED_API_VERSIONS: frozenset[str] = frozenset({"0.1", "0.2"})
+# Convenience alias for code that wants the "preferred" / latest version
+# (e.g. test envelope wrappers, version-equality checks against spec_runner).
+SUPPORTED_API_VERSION = "0.2"
 
 
 class DefernoError(RuntimeError):
@@ -111,11 +118,12 @@ class DefernoClient:
             )
 
         version = payload["version"]
-        if version != SUPPORTED_API_VERSION:
+        if version not in SUPPORTED_API_VERSIONS:
+            supported = ", ".join(sorted(SUPPORTED_API_VERSIONS))
             raise DefernoError(
                 502,
-                f"unsupported API version: backend reported {version!r}, "
-                f"client supports {SUPPORTED_API_VERSION!r}",
+                f"unsupported API version: {version!r} "
+                f"(this client supports {supported})",
             )
 
         error = payload.get("error")

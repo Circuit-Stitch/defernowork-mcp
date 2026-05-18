@@ -168,8 +168,12 @@ class TestSubstitutePath:
 
 class TestEnvelopeWrappers:
     def test_wrap_data(self):
+        # Bumped from "0.1" -> "0.2": wrappers stamp the canonical "preferred"
+        # SUPPORTED_API_VERSION, which is now "0.2" during the v0.1->v0.2
+        # cutover. The client accepts both versions, so v0.1 fixtures wrapped
+        # at v0.2 still round-trip correctly through the spec-driven tests.
         assert wrap_envelope_data([{"id": "x"}]) == {
-            "version": "0.1",
+            "version": "0.2",
             "data": [{"id": "x"}],
             "error": None,
         }
@@ -177,7 +181,7 @@ class TestEnvelopeWrappers:
     def test_wrap_error(self):
         out = wrap_envelope_error({"code": "validation_error", "message": "bad"})
         assert out == {
-            "version": "0.1",
+            "version": "0.2",
             "data": None,
             "error": {"code": "validation_error", "message": "bad"},
         }
@@ -209,7 +213,9 @@ class TestDiscovery:
         )
 
         monkeypatch.setattr("tests.spec_runner.SPEC_DIR", tmp_path)
-        fixtures = discover_backend_fixtures()
+        # Walk v0.1 explicitly: SUPPORTED_API_VERSION now resolves to the
+        # latest supported version ("0.2"), but the fixture lives at v0.1.
+        fixtures = discover_backend_fixtures("0.1")
         assert len(fixtures) == 1
         f = fixtures[0]
         assert f.operation == "tasks.list"

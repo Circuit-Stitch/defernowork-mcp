@@ -24,6 +24,7 @@ from tests.spec_runner import (
     Fixture,
     PLACEHOLDER_UUID,
     SUPPORTED_API_VERSION,
+    SUPPORTED_API_VERSIONS,
     assert_request_matches_spec,
     assert_response_matches_shape,
     discover_backend_fixtures,
@@ -43,7 +44,12 @@ def client() -> DefernoClient:
 
 
 def _client_fixtures() -> list[Fixture]:
-    return [f for f in discover_backend_fixtures() if f.client_method]
+    return [
+        f
+        for v in sorted(SUPPORTED_API_VERSIONS)
+        for f in discover_backend_fixtures(v)
+        if f.client_method
+    ]
 
 
 def _ids(fixtures: list[Fixture]) -> list[str]:
