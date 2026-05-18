@@ -1,0 +1,39 @@
+{
+  "operation": "events.occurrence_comment_patch",
+  "method": "PATCH",
+  "path_template": "/events/{id}/occurrences/{date}/comment",
+  "auth": "bearer",
+  "request": {
+    "headers_required": ["Authorization"],
+    "body": {
+      "required": [],
+      "optional": ["body", "is_private"],
+      "example": {"body": "edited"}
+    }
+  },
+  "responses": [
+    {
+      "status": 200,
+      "shape": {
+        "id": "uuid",
+        "task_id": "uuid",
+        "body": "string",
+        "is_private": "boolean",
+        "created_at": "datetime",
+        "_required": ["id", "task_id", "body", "is_private", "created_at"]
+      },
+      "example": {
+        "id": "00000000-0000-0000-0000-000000000001",
+        "task_id": "00000000-0000-0000-0000-000000000099",
+        "body": "edited",
+        "is_private": false,
+        "created_at": "2026-05-18T00:00:00Z"
+      }
+    }
+  ],
+  "client_method": "patch_event_occurrence_comment",
+  "client_args_from_example": ["body"],
+  "mcp_tool": "patch_event_occurrence_comment",
+  "mcp_tool_args_from_example": ["body"],
+  "notes": "PR-F. Edits the latest comment on the occurrence. Body is partial — both fields optional."
+}

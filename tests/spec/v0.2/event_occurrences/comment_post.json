@@ -1,0 +1,39 @@
+{
+  "operation": "events.occurrence_comment_post",
+  "method": "POST",
+  "path_template": "/events/{id}/occurrences/{date}/comment",
+  "auth": "bearer",
+  "request": {
+    "headers_required": ["Authorization"],
+    "body": {
+      "required": ["body", "is_private"],
+      "optional": [],
+      "example": {"body": "Hello", "is_private": false}
+    }
+  },
+  "responses": [
+    {
+      "status": 201,
+      "shape": {
+        "id": "uuid",
+        "task_id": "uuid",
+        "body": "string",
+        "is_private": "boolean",
+        "created_at": "datetime",
+        "_required": ["id", "task_id", "body", "is_private", "created_at"]
+      },
+      "example": {
+        "id": "00000000-0000-0000-0000-000000000001",
+        "task_id": "00000000-0000-0000-0000-000000000099",
+        "body": "Hello",
+        "is_private": false,
+        "created_at": "2026-05-18T00:00:00Z"
+      }
+    }
+  ],
+  "client_method": "post_event_occurrence_comment",
+  "client_args_from_example": ["body", "is_private"],
+  "mcp_tool": "post_event_occurrence_comment",
+  "mcp_tool_args_from_example": ["body", "is_private"],
+  "notes": "PR-F. Comment.task_id is repurposed as parent-event id (PR-I renames to parent_id). Multiple comments per occurrence supported; POST appends to Occurrence.comment list."
+}

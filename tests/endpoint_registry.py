@@ -141,6 +141,11 @@ ENDPOINTS: list[Endpoint] = [
     Endpoint("events", "GET",    "/events/{id}/occurrences/{date}/attachments",           "events.occurrence_attachments_list",    "bearer"),
     Endpoint("events", "DELETE", "/events/{id}/occurrences/{date}/attachments/{att_id}",  "events.occurrence_attachments_delete",  "bearer"),
 
+    # ── handlers::event_occurrences (PR-F per-event-occurrence comments) ───
+    Endpoint("events", "POST",   "/events/{id}/occurrences/{date}/comment",  "events.occurrence_comment_post",   "bearer"),
+    Endpoint("events", "PATCH",  "/events/{id}/occurrences/{date}/comment",  "events.occurrence_comment_patch",  "bearer"),
+    Endpoint("events", "DELETE", "/events/{id}/occurrences/{date}/comment",  "events.occurrence_comment_delete", "bearer"),
+
     # ── handlers::comments (creator-only) ───────────────────────────────
     Endpoint("comments", "PATCH",  "/comments/{comment_id}", "comments.patch",  "bearer"),
     Endpoint("comments", "DELETE", "/comments/{comment_id}", "comments.delete", "bearer"),

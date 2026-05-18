@@ -518,6 +518,42 @@ class DefernoClient:
             f"/events/{event_id}/occurrences/{date}/attachments/{attachment_id}",
         )
 
+    # ------------------------------------ event occurrence comments (PR-F)
+    async def post_event_occurrence_comment(
+        self, event_id: str, date: str, body: str, is_private: bool = False
+    ) -> dict[str, Any]:
+        return await self._request(
+            "POST",
+            f"/events/{event_id}/occurrences/{date}/comment",
+            json_body={"body": body, "is_private": is_private},
+        )
+
+    async def patch_event_occurrence_comment(
+        self,
+        event_id: str,
+        date: str,
+        body: str | None = None,
+        is_private: bool | None = None,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {}
+        if body is not None:
+            payload["body"] = body
+        if is_private is not None:
+            payload["is_private"] = is_private
+        return await self._request(
+            "PATCH",
+            f"/events/{event_id}/occurrences/{date}/comment",
+            json_body=payload,
+        )
+
+    async def delete_event_occurrence_comment(
+        self, event_id: str, date: str
+    ) -> None:
+        await self._request(
+            "DELETE",
+            f"/events/{event_id}/occurrences/{date}/comment",
+        )
+
     async def reschedule_chore_occurrence(
         self, chore_id: str, date: str, new_date: str
     ) -> dict[str, Any]:

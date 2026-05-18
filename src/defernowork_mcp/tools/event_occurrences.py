@@ -190,3 +190,57 @@ def register(
             except DefernoError as exc:
                 return format_error(exc)
         return json.dumps({"ok": True})
+
+    @mcp.tool()
+    async def post_event_occurrence_comment(
+        event_id: str,
+        date: str,
+        body: str,
+        is_private: bool = False,
+        ctx: Context = None,
+    ) -> str:
+        """Append a new comment to an event occurrence (date).
+
+        Multiple comments per occurrence are supported (PR-F). Returns
+        the persisted Comment with id + created_at.
+        """
+        async with (await get_client(ctx=ctx)) as client:
+            try:
+                resp = await client.post_event_occurrence_comment(
+                    event_id, date, body, is_private
+                )
+            except DefernoError as exc:
+                return format_error(exc)
+        return json.dumps(resp)
+
+    @mcp.tool()
+    async def patch_event_occurrence_comment(
+        event_id: str,
+        date: str,
+        body: str | None = None,
+        is_private: bool | None = None,
+        ctx: Context = None,
+    ) -> str:
+        """Edit the latest comment on an event occurrence (date)."""
+        async with (await get_client(ctx=ctx)) as client:
+            try:
+                resp = await client.patch_event_occurrence_comment(
+                    event_id, date, body, is_private
+                )
+            except DefernoError as exc:
+                return format_error(exc)
+        return json.dumps(resp)
+
+    @mcp.tool()
+    async def delete_event_occurrence_comment(
+        event_id: str,
+        date: str,
+        ctx: Context = None,
+    ) -> str:
+        """Soft-delete the latest comment on an event occurrence (date)."""
+        async with (await get_client(ctx=ctx)) as client:
+            try:
+                await client.delete_event_occurrence_comment(event_id, date)
+            except DefernoError as exc:
+                return format_error(exc)
+        return json.dumps({"ok": True})
