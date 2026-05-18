@@ -390,6 +390,43 @@ class DefernoClient:
     async def delete_event(self, event_id: str) -> None:
         await self._request("DELETE", f"/events/{event_id}")
 
+    # ---------------------------------------------------- event occurrences
+    async def list_event_occurrences(
+        self,
+        event_id: str,
+        from_date: str | None = None,
+        to_date: str | None = None,
+    ) -> list[dict[str, Any]]:
+        params: dict[str, str] = {}
+        if from_date is not None:
+            params["from"] = from_date
+        if to_date is not None:
+            params["to"] = to_date
+        path = f"/events/{event_id}/occurrences"
+        if params:
+            path = f"{path}?{urlencode(params)}"
+        return await self._request("GET", path)
+
+    async def set_event_occurrence(
+        self,
+        event_id: str,
+        date: str,
+        action: str,
+        cascade_subtasks: bool = False,
+    ) -> dict[str, Any]:
+        body = {"action": action, "cascade_subtasks": cascade_subtasks}
+        return await self._request(
+            "POST",
+            f"/events/{event_id}/occurrences/{date}",
+            json_body=body,
+        )
+
+    async def delete_event_occurrence(self, event_id: str, date: str) -> None:
+        await self._request(
+            "DELETE",
+            f"/events/{event_id}/occurrences/{date}",
+        )
+
     # --------------------------------------------------------------- comments
     async def update_comment(self, comment_id: str, payload: dict[str, Any]) -> dict[str, Any]:
         return await self._request("PATCH", f"/comments/{comment_id}", json_body=payload)

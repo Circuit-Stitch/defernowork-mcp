@@ -1,0 +1,43 @@
+{
+  "operation": "events.occurrences_list",
+  "method": "GET",
+  "path_template": "/events/{id}/occurrences",
+  "auth": "bearer",
+  "request": {
+    "headers_required": ["Authorization"],
+    "query": {
+      "required": [],
+      "optional": ["from_date", "to_date"],
+      "example": {"from_date": "2026-05-01", "to_date": "2026-05-31"}
+    }
+  },
+  "responses": [
+    {
+      "status": 200,
+      "shape": [
+        {
+          "id": "uuid",
+          "parent_id": "uuid",
+          "scheduled_date": "string",
+          "status": "string",
+          "_required": ["id", "parent_id", "scheduled_date", "status"]
+        }
+      ],
+      "example": [
+        {
+          "id": "00000000-0000-0000-0000-000000000001",
+          "parent_id": "00000000-0000-0000-0000-000000000099",
+          "scheduled_date": "2026-05-10",
+          "status": "Scheduled",
+          "comment": [],
+          "attachments": []
+        }
+      ]
+    }
+  ],
+  "client_method": "list_event_occurrences",
+  "client_args_from_example": ["from_date", "to_date"],
+  "mcp_tool": "list_event_occurrences",
+  "mcp_tool_args_from_example": ["from_date", "to_date"],
+  "notes": "PR-D unified Occurrence shape -- id and parent_id are required, comment/attachments default to []. Query params from/to are RFC3339 dates (client kwargs from_date/to_date map to wire keys from/to)."
+}

@@ -3,6 +3,7 @@
 from .auth import register as register_auth
 from .chores import register as register_chores
 from .comments import register as register_comments
+from .event_occurrences import register as register_event_occurrences
 from .events import register as register_events
 from .feedback import register as register_feedback
 from .habits import register as register_habits
@@ -15,6 +16,7 @@ __all__ = [
     "register_auth",
     "register_chores",
     "register_comments",
+    "register_event_occurrences",
     "register_events",
     "register_feedback",
     "register_habits",

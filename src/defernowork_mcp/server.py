@@ -44,6 +44,7 @@ from .tools import (
     register_chores,
     register_comments,
     register_daily_plan,
+    register_event_occurrences,
     register_events,
     register_feedback,
     register_habits,
@@ -285,6 +286,7 @@ def create_server(http_transport: bool = False) -> FastMCP:
     register_chores(mcp, _get_client_async, _format_error, _compact, _UNSET)
     register_habits(mcp, _get_client_async, _format_error, _compact, _UNSET)
     register_events(mcp, _get_client_async, _format_error, _compact, _UNSET)
+    register_event_occurrences(mcp, _get_client_async, _format_error)
     register_comments(mcp, _get_client_async, _format_error, _compact, _UNSET)
     register_saved_searches(mcp, _get_client_async, _format_error, _compact, _UNSET)
     register_feedback(mcp, _get_client_async, _format_error, _compact, _UNSET)

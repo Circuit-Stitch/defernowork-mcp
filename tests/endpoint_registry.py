@@ -121,6 +121,11 @@ ENDPOINTS: list[Endpoint] = [
     Endpoint("events", "PATCH",  "/events/{id}",   "events.patch",  "bearer"),
     Endpoint("events", "DELETE", "/events/{id}",   "events.delete", "bearer"),
 
+    # ── handlers::event_occurrences (PR-D v0.2 unified Occurrence) ─────
+    Endpoint("events", "GET",    "/events/{id}/occurrences",           "events.occurrences_list",   "bearer"),
+    Endpoint("events", "POST",   "/events/{id}/occurrences/{date}",    "events.occurrences_set",    "bearer"),
+    Endpoint("events", "DELETE", "/events/{id}/occurrences/{date}",    "events.occurrences_delete", "bearer"),
+
     # ── handlers::comments (creator-only) ───────────────────────────────
     Endpoint("comments", "PATCH",  "/comments/{comment_id}", "comments.patch",  "bearer"),
     Endpoint("comments", "DELETE", "/comments/{comment_id}", "comments.delete", "bearer"),

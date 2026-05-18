@@ -1,0 +1,38 @@
+{
+  "operation": "events.occurrences_set",
+  "method": "POST",
+  "path_template": "/events/{id}/occurrences/{date}",
+  "auth": "bearer",
+  "request": {
+    "headers_required": ["Authorization"],
+    "body": {
+      "required": ["action"],
+      "optional": ["cascade_subtasks"],
+      "example": {"action": "done", "cascade_subtasks": false}
+    }
+  },
+  "responses": [
+    {
+      "status": 200,
+      "shape": {
+        "id": "uuid",
+        "parent_id": "uuid",
+        "scheduled_date": "string",
+        "status": "string",
+        "_required": ["id", "parent_id", "scheduled_date", "status"]
+      },
+      "example": {
+        "id": "00000000-0000-0000-0000-000000000001",
+        "parent_id": "00000000-0000-0000-0000-000000000099",
+        "scheduled_date": "2026-05-10",
+        "status": "DoneOnTime",
+        "done_at": "2026-05-10T18:00:00Z"
+      }
+    }
+  ],
+  "client_method": "set_event_occurrence",
+  "client_args_from_example": ["action", "cascade_subtasks"],
+  "mcp_tool": "set_event_occurrence",
+  "mcp_tool_args_from_example": ["action", "cascade_subtasks"],
+  "notes": "OccurrenceAction accepts in_progress|done|dropped (alias skipped). Events never produce DoneLate (EVENT-006). cascade_subtasks=true sweeps non-terminal subtasks to Done; defaults false and 409s if subtasks remain (SUBTASK-003)."
+}
