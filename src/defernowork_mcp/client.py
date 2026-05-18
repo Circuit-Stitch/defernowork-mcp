@@ -301,6 +301,44 @@ class DefernoClient:
         """Export all user data."""
         return await self._request("GET", "/tasks/export")
 
+    # ------------------------------------------------- task attachments (PR-F)
+    async def presign_task_attachments(
+        self, task_id: str, files: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        return await self._request(
+            "POST",
+            f"/tasks/{task_id}/attachments/presign",
+            json_body={"files": files},
+        )
+
+    async def commit_task_attachments(
+        self,
+        task_id: str,
+        intents: list[str] | None = None,
+        urls: list[dict[str, Any]] | None = None,
+    ) -> list[dict[str, Any]]:
+        body: dict[str, Any] = {}
+        if intents:
+            body["intents"] = intents
+        if urls:
+            body["urls"] = urls
+        return await self._request(
+            "POST",
+            f"/tasks/{task_id}/attachments",
+            json_body=body,
+        )
+
+    async def list_task_attachments(self, task_id: str) -> list[dict[str, Any]]:
+        return await self._request("GET", f"/tasks/{task_id}/attachments")
+
+    async def delete_task_attachment(
+        self, task_id: str, attachment_id: str
+    ) -> None:
+        await self._request(
+            "DELETE",
+            f"/tasks/{task_id}/attachments/{attachment_id}",
+        )
+
     # ----------------------------------------------------------------- chores
     async def create_chore(self, payload: dict[str, Any]) -> dict[str, Any]:
         return await self._request("POST", "/chores", json_body=payload)

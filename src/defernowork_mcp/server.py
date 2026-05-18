@@ -50,6 +50,7 @@ from .tools import (
     register_habits,
     register_items,
     register_saved_searches,
+    register_task_attachments,
     register_tasks,
 )
 
@@ -283,6 +284,7 @@ def create_server(http_transport: bool = False) -> FastMCP:
     # ── Register tool modules ─────────────────────────────────────
     register_auth(mcp, _get_client_async, _get_anon_client, _format_error, _compact, _UNSET)
     register_tasks(mcp, _get_client_async, _format_error, _compact, _UNSET)
+    register_task_attachments(mcp, _get_client_async, _format_error)
     register_chores(mcp, _get_client_async, _format_error, _compact, _UNSET)
     register_habits(mcp, _get_client_async, _format_error, _compact, _UNSET)
     register_events(mcp, _get_client_async, _format_error, _compact, _UNSET)

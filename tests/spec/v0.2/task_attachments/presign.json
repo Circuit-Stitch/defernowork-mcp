@@ -1,0 +1,41 @@
+{
+  "operation": "tasks.attachments_presign",
+  "method": "POST",
+  "path_template": "/tasks/{id}/attachments/presign",
+  "auth": "bearer",
+  "request": {
+    "headers_required": ["Authorization"],
+    "body": {
+      "required": ["files"],
+      "optional": [],
+      "example": {
+        "files": [
+          {"filename": "notes.pdf", "content_type": "application/pdf", "size_bytes": 12345}
+        ]
+      }
+    }
+  },
+  "responses": [
+    {
+      "status": 200,
+      "shape": {
+        "attachments": "array",
+        "_required": ["attachments"]
+      },
+      "example": {
+        "attachments": [
+          {
+            "attachment_id": "00000000-0000-0000-0000-000000000001",
+            "put_url": "https://s3.example.com/upload?sig=...",
+            "expires_at": "2026-05-18T01:00:00Z"
+          }
+        ]
+      }
+    }
+  ],
+  "client_method": "presign_task_attachments",
+  "client_args_from_example": ["files"],
+  "mcp_tool": "presign_task_attachments",
+  "mcp_tool_args_from_example": ["files"],
+  "notes": "PR-F. Server enforces 25 MB cap + blocked MIME list + max-attachments cap. After presign, the client PUTs each file to its put_url; then calls /attachments commit with the returned attachment_ids. Wire keys for each file are filename / content_type / size_bytes (the Rust PresignRequest struct has no serde renames)."
+}

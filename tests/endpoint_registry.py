@@ -100,6 +100,12 @@ ENDPOINTS: list[Endpoint] = [
     Endpoint("tasks", "POST",   "/tasks/pinned/reorder",        "tasks.pinned_reorder",  "bearer"),
     Endpoint("tasks", "PATCH",  "/tasks/pinned/{id}",           "tasks.pinned_label",    "bearer"),
 
+    # ── handlers::task_attachments (PR-F per-Task attachments) ─────────
+    Endpoint("tasks", "POST",   "/tasks/{id}/attachments/presign",   "tasks.attachments_presign", "bearer"),
+    Endpoint("tasks", "POST",   "/tasks/{id}/attachments",           "tasks.attachments_commit",  "bearer"),
+    Endpoint("tasks", "GET",    "/tasks/{id}/attachments",           "tasks.attachments_list",    "bearer"),
+    Endpoint("tasks", "DELETE", "/tasks/{id}/attachments/{att_id}",  "tasks.attachments_delete",  "bearer"),
+
     # ── handlers::habits ────────────────────────────────────────────────
     Endpoint("habits", "POST",   "/habits",                                          "habits.create",                  "bearer"),
     Endpoint("habits", "PATCH",  "/habits/{id}",                                     "habits.patch",                   "bearer"),
