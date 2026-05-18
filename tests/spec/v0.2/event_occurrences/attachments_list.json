@@ -1,0 +1,26 @@
+{
+  "operation": "events.occurrence_attachments_list",
+  "method": "GET",
+  "path_template": "/events/{id}/occurrences/{date}/attachments",
+  "auth": "bearer",
+  "request": {"headers_required": ["Authorization"]},
+  "responses": [
+    {
+      "status": 200,
+      "shape": [
+        {
+          "id": "uuid",
+          "provider": "string",
+          "filename": "string",
+          "_required": ["id", "provider", "filename"]
+        }
+      ],
+      "example": []
+    }
+  ],
+  "client_method": "list_event_occurrence_attachments",
+  "client_args_from_example": [],
+  "mcp_tool": "list_event_occurrence_attachments",
+  "mcp_tool_args_from_example": [],
+  "notes": "Returns AttachmentView wire shape; s3 urls are fresh signed GETs."
+}

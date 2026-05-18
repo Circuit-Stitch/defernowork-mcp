@@ -104,3 +104,89 @@ def register(
             except DefernoError as exc:
                 return format_error(exc)
         return json.dumps(occ)
+
+    @mcp.tool()
+    async def presign_event_occurrence_attachments(
+        event_id: str,
+        date: str,
+        files: list[dict],
+        ctx: Context = None,
+    ) -> str:
+        """Batch-presign attachments for a specific event occurrence (date).
+
+        Each entry in ``files`` is ``{filename, content_type, size_bytes}``.
+        Server enforces 25 MB per-file cap, blocked-MIME list, and a
+        max-attachments cap. Returns presigned PUT URLs with intent ids
+        that ``commit_event_occurrence_attachments`` later consumes.
+        """
+        async with (await get_client(ctx=ctx)) as client:
+            try:
+                resp = await client.presign_event_occurrence_attachments(
+                    event_id, date, files
+                )
+            except DefernoError as exc:
+                return format_error(exc)
+        return json.dumps(resp)
+
+    @mcp.tool()
+    async def commit_event_occurrence_attachments(
+        event_id: str,
+        date: str,
+        intents: list[str] | None = None,
+        urls: list[dict] | None = None,
+        ctx: Context = None,
+    ) -> str:
+        """Commit intents and/or url-provider entries to an event occurrence.
+
+        ``intents`` are attachment ids returned by a prior presign call
+        whose files have been PUT to S3. ``urls`` are url-provider entries
+        ``{url, filename?}``. 400 if both lists are empty.
+        """
+        async with (await get_client(ctx=ctx)) as client:
+            try:
+                resp = await client.commit_event_occurrence_attachments(
+                    event_id, date, intents, urls
+                )
+            except DefernoError as exc:
+                return format_error(exc)
+        return json.dumps(resp)
+
+    @mcp.tool()
+    async def list_event_occurrence_attachments(
+        event_id: str,
+        date: str,
+        ctx: Context = None,
+    ) -> str:
+        """List attachments on a specific event occurrence (date).
+
+        Returns the AttachmentView shape:
+        ``{id, provider, filename, mime, size, created_at, created_by, url}``.
+        ``url`` is a freshly signed GET for s3-backed entries.
+        """
+        async with (await get_client(ctx=ctx)) as client:
+            try:
+                resp = await client.list_event_occurrence_attachments(event_id, date)
+            except DefernoError as exc:
+                return format_error(exc)
+        return json.dumps(resp)
+
+    @mcp.tool()
+    async def delete_event_occurrence_attachment(
+        event_id: str,
+        date: str,
+        att_id: str,
+        ctx: Context = None,
+    ) -> str:
+        """Delete a single attachment from an event occurrence.
+
+        ``att_id`` is the attachment id returned in the AttachmentView.
+        Returns ``{"ok": true}`` on success.
+        """
+        async with (await get_client(ctx=ctx)) as client:
+            try:
+                await client.delete_event_occurrence_attachment(
+                    event_id, date, att_id
+                )
+            except DefernoError as exc:
+                return format_error(exc)
+        return json.dumps({"ok": True})

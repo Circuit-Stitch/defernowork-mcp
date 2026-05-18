@@ -474,6 +474,50 @@ class DefernoClient:
             json_body={"new_date": new_date},
         )
 
+    # ------------------------------------ event occurrence attachments (PR-F)
+    async def presign_event_occurrence_attachments(
+        self, event_id: str, date: str, files: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        return await self._request(
+            "POST",
+            f"/events/{event_id}/occurrences/{date}/attachments/presign",
+            json_body={"files": files},
+        )
+
+    async def commit_event_occurrence_attachments(
+        self,
+        event_id: str,
+        date: str,
+        intents: list[str] | None = None,
+        urls: list[dict[str, Any]] | None = None,
+    ) -> list[dict[str, Any]]:
+        body: dict[str, Any] = {}
+        if intents:
+            body["intents"] = intents
+        if urls:
+            body["urls"] = urls
+        return await self._request(
+            "POST",
+            f"/events/{event_id}/occurrences/{date}/attachments",
+            json_body=body,
+        )
+
+    async def list_event_occurrence_attachments(
+        self, event_id: str, date: str
+    ) -> list[dict[str, Any]]:
+        return await self._request(
+            "GET",
+            f"/events/{event_id}/occurrences/{date}/attachments",
+        )
+
+    async def delete_event_occurrence_attachment(
+        self, event_id: str, date: str, attachment_id: str
+    ) -> None:
+        await self._request(
+            "DELETE",
+            f"/events/{event_id}/occurrences/{date}/attachments/{attachment_id}",
+        )
+
     async def reschedule_chore_occurrence(
         self, chore_id: str, date: str, new_date: str
     ) -> dict[str, Any]:

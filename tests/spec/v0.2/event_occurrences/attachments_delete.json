@@ -1,0 +1,13 @@
+{
+  "operation": "events.occurrence_attachments_delete",
+  "method": "DELETE",
+  "path_template": "/events/{id}/occurrences/{date}/attachments/{att_id}",
+  "auth": "bearer",
+  "request": {"headers_required": ["Authorization"]},
+  "responses": [{"status": 204, "shape": "null", "example": null}],
+  "client_method": "delete_event_occurrence_attachment",
+  "client_args_from_example": [],
+  "mcp_tool": "delete_event_occurrence_attachment",
+  "mcp_tool_args_from_example": [],
+  "notes": "Removes a single attachment by id from an event occurrence."
+}
