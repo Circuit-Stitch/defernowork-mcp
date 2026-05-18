@@ -1,0 +1,22 @@
+{
+  "operation": "items.pin",
+  "method": "POST",
+  "path_template": "/items/{id}/pin",
+  "auth": "bearer",
+  "request": {
+    "headers_required": ["Authorization"],
+    "body": {
+      "required": ["pinned"],
+      "optional": [],
+      "example": {"pinned": true}
+    }
+  },
+  "responses": [
+    {"status": 204, "shape": "null", "example": null}
+  ],
+  "client_method": "set_item_pinned",
+  "client_args_from_example": ["pinned"],
+  "mcp_tool": "set_item_pinned",
+  "mcp_tool_args_from_example": ["pinned"],
+  "notes": "Backend struct SetPinnedPayload accepts only {pinned: bool} -- the gap-closure plan's optional 'label' field does not exist server-side. Returns 204 NO_CONTENT (not an ItemView). Polymorphic toggle: dispatches via kind index, mutates 'pinned' on the matching Task/Habit/Chore/Event, syncs user:{uid}:pinned list across all sibling kinds."
+}

@@ -1,0 +1,31 @@
+{
+  "operation": "items.convert",
+  "method": "POST",
+  "path_template": "/items/{id}/convert",
+  "auth": "bearer",
+  "request": {
+    "headers_required": ["Authorization"],
+    "body": {
+      "required": ["to"],
+      "optional": ["complete_by", "end_time", "recurrence"],
+      "example": {"to": "task"}
+    }
+  },
+  "responses": [
+    {
+      "status": 200,
+      "shape": {"id": "uuid", "kind": "string", "_required": ["id", "kind"]},
+      "example": {"id": "00000000-0000-0000-0000-000000000001", "kind": "Task"}
+    },
+    {
+      "status": 201,
+      "shape": {"id": "uuid", "kind": "string", "_required": ["id", "kind"]},
+      "example": {"id": "00000000-0000-0000-0000-000000000001", "kind": "Chore"}
+    }
+  ],
+  "client_method": "convert_item",
+  "client_args_from_example": ["to"],
+  "mcp_tool": "convert_item",
+  "mcp_tool_args_from_example": ["to"],
+  "notes": "Backend struct ConvertItemPayload uses field name 'to' (not 'target_kind' as in the gap-closure plan). complete_by required when 'to' is Event/Chore/Habit; recurrence required when 'to' is Habit/Chore. Returns 201 on real conversion, 200 when 'to' equals current kind (idempotent)."
+}

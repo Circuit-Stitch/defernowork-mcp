@@ -681,6 +681,42 @@ class DefernoClient:
             body["date"] = date
         return await self._request("POST", "/items/plan/reorder", json_body=body)
 
+    async def convert_item(
+        self, item_id: str, to: str, **kwargs: Any
+    ) -> dict[str, Any]:
+        """Convert an item to a different kind.
+
+        The wire field is ``to`` (backend ``ConvertItemPayload.to``); the
+        gap-closure plan called this ``target_kind`` but the actual backend
+        struct uses ``to``. Extra keyword args (``complete_by``, ``end_time``,
+        ``recurrence``) are forwarded verbatim and are required by the
+        backend when ``to`` is Event/Chore/Habit (see backend payloads.rs).
+        Returns the new item view; backend uses 201 on real conversion and
+        200 when ``to`` matches the current kind (idempotent).
+        """
+        body: dict[str, Any] = {"to": to}
+        for k, v in kwargs.items():
+            if v is not None:
+                body[k] = v
+        return await self._request(
+            "POST", f"/items/{item_id}/convert", json_body=body
+        )
+
+    async def get_item_history(self, item_id: str) -> list[dict[str, Any]]:
+        """Return the action history list for any item kind."""
+        return await self._request("GET", f"/items/{item_id}/history")
+
+    async def set_item_pinned(self, item_id: str, pinned: bool) -> None:
+        """Pin or unpin an item. Backend returns 204 NO_CONTENT.
+
+        The plan's optional ``label`` field is not implemented server-side
+        (``SetPinnedPayload`` only carries ``pinned``); per-pin labels live
+        in the separate ``/tasks/pinned/{id}`` PATCH route (see Task 9).
+        """
+        await self._request(
+            "POST", f"/items/{item_id}/pin", json_body={"pinned": pinned}
+        )
+
     # ---------------------------------------------------------- tasks (extras)
     async def delete_task(self, task_id: str) -> None:
         await self._request("DELETE", f"/tasks/{task_id}")
