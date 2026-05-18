@@ -427,6 +427,33 @@ class DefernoClient:
             f"/events/{event_id}/occurrences/{date}",
         )
 
+    async def reschedule_event_occurrence(
+        self, event_id: str, date: str, new_date: str
+    ) -> dict[str, Any]:
+        return await self._request(
+            "POST",
+            f"/events/{event_id}/occurrences/{date}/reschedule",
+            json_body={"new_date": new_date},
+        )
+
+    async def reschedule_chore_occurrence(
+        self, chore_id: str, date: str, new_date: str
+    ) -> dict[str, Any]:
+        return await self._request(
+            "POST",
+            f"/chores/{chore_id}/occurrences/{date}/reschedule",
+            json_body={"new_date": new_date},
+        )
+
+    async def reschedule_habit_occurrence(
+        self, habit_id: str, date: str, new_date: str
+    ) -> dict[str, Any]:
+        return await self._request(
+            "POST",
+            f"/habits/{habit_id}/occurrences/{date}/reschedule",
+            json_body={"new_date": new_date},
+        )
+
     # --------------------------------------------------------------- comments
     async def update_comment(self, comment_id: str, payload: dict[str, Any]) -> dict[str, Any]:
         return await self._request("PATCH", f"/comments/{comment_id}", json_body=payload)

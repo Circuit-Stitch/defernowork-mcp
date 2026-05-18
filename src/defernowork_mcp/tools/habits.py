@@ -138,3 +138,22 @@ def register(
             except DefernoError as exc:
                 return format_error(exc)
         return json.dumps({"cleared": True, "habit_id": habit_id, "date": date})
+
+    @mcp.tool()
+    async def reschedule_habit_occurrence(
+        habit_id: str,
+        date: str,
+        new_date: str,
+        ctx: Context = None,
+    ) -> str:
+        """Move a single habit occurrence to ``new_date`` without touching the cadence.
+
+        NOTE (v0.2): the backend returns 501 today for habits (legacy
+        storage); the tool is exposed for forward compatibility.
+        """
+        async with (await get_client(ctx=ctx)) as client:
+            try:
+                occ = await client.reschedule_habit_occurrence(habit_id, date, new_date)
+            except DefernoError as exc:
+                return format_error(exc)
+        return json.dumps(occ)

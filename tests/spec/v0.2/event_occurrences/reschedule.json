@@ -1,0 +1,39 @@
+{
+  "operation": "events.occurrences_reschedule",
+  "method": "POST",
+  "path_template": "/events/{id}/occurrences/{date}/reschedule",
+  "auth": "bearer",
+  "request": {
+    "headers_required": ["Authorization"],
+    "body": {
+      "required": ["new_date"],
+      "optional": [],
+      "example": {"new_date": "2026-05-17"}
+    }
+  },
+  "responses": [
+    {
+      "status": 200,
+      "shape": {
+        "id": "uuid",
+        "parent_id": "uuid",
+        "scheduled_date": "string",
+        "status": "string",
+        "rescheduled_from": "string",
+        "_required": ["id", "parent_id", "scheduled_date", "status"]
+      },
+      "example": {
+        "id": "00000000-0000-0000-0000-000000000002",
+        "parent_id": "00000000-0000-0000-0000-000000000099",
+        "scheduled_date": "2026-05-17",
+        "status": "Scheduled",
+        "rescheduled_from": "2026-05-10"
+      }
+    }
+  ],
+  "client_method": "reschedule_event_occurrence",
+  "client_args_from_example": ["new_date"],
+  "mcp_tool": "reschedule_event_occurrence",
+  "mcp_tool_args_from_example": ["new_date"],
+  "notes": "SCOPE-010 per-occurrence reschedule. Origin date row becomes Dropped with rescheduled_to=new_date; target date carries rescheduled_from=origin_date. RRULE untouched. 400 if new_date == origin date."
+}

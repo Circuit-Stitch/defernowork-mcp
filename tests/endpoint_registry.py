@@ -101,20 +101,22 @@ ENDPOINTS: list[Endpoint] = [
     Endpoint("tasks", "PATCH",  "/tasks/pinned/{id}",           "tasks.pinned_label",    "bearer"),
 
     # ── handlers::habits ────────────────────────────────────────────────
-    Endpoint("habits", "POST",   "/habits",                              "habits.create",            "bearer"),
-    Endpoint("habits", "PATCH",  "/habits/{id}",                         "habits.patch",             "bearer"),
-    Endpoint("habits", "DELETE", "/habits/{id}",                         "habits.delete",            "bearer"),
-    Endpoint("habits", "GET",    "/habits/{id}/occurrences",             "habits.occurrences_list",  "bearer"),
-    Endpoint("habits", "POST",   "/habits/{id}/occurrences",             "habits.occurrences_mark",  "bearer"),
-    Endpoint("habits", "DELETE", "/habits/{id}/occurrences/{date}",      "habits.occurrences_clear", "bearer"),
+    Endpoint("habits", "POST",   "/habits",                                          "habits.create",                  "bearer"),
+    Endpoint("habits", "PATCH",  "/habits/{id}",                                     "habits.patch",                   "bearer"),
+    Endpoint("habits", "DELETE", "/habits/{id}",                                     "habits.delete",                  "bearer"),
+    Endpoint("habits", "GET",    "/habits/{id}/occurrences",                         "habits.occurrences_list",        "bearer"),
+    Endpoint("habits", "POST",   "/habits/{id}/occurrences",                         "habits.occurrences_mark",        "bearer"),
+    Endpoint("habits", "DELETE", "/habits/{id}/occurrences/{date}",                  "habits.occurrences_clear",       "bearer"),
+    Endpoint("habits", "POST",   "/habits/{id}/occurrences/{date}/reschedule",       "habits.occurrences_reschedule",  "bearer"),
 
     # ── handlers::chores ────────────────────────────────────────────────
-    Endpoint("chores", "POST",   "/chores",                              "chores.create",                 "bearer"),
-    Endpoint("chores", "PATCH",  "/chores/{id}",                         "chores.patch",                  "bearer"),
-    Endpoint("chores", "DELETE", "/chores/{id}",                         "chores.delete",                 "bearer"),
-    Endpoint("chores", "GET",    "/chores/{id}/occurrences",             "chores.occurrences_list",       "bearer"),
-    Endpoint("chores", "PUT",    "/chores/{id}/occurrences/{date}",      "chores.occurrences_set_status", "bearer"),
-    Endpoint("chores", "POST",   "/chores/{id}/mark-next-done",          "chores.mark_next_done",         "bearer"),
+    Endpoint("chores", "POST",   "/chores",                                          "chores.create",                  "bearer"),
+    Endpoint("chores", "PATCH",  "/chores/{id}",                                     "chores.patch",                   "bearer"),
+    Endpoint("chores", "DELETE", "/chores/{id}",                                     "chores.delete",                  "bearer"),
+    Endpoint("chores", "GET",    "/chores/{id}/occurrences",                         "chores.occurrences_list",        "bearer"),
+    Endpoint("chores", "PUT",    "/chores/{id}/occurrences/{date}",                  "chores.occurrences_set_status",  "bearer"),
+    Endpoint("chores", "POST",   "/chores/{id}/mark-next-done",                      "chores.mark_next_done",          "bearer"),
+    Endpoint("chores", "POST",   "/chores/{id}/occurrences/{date}/reschedule",       "chores.occurrences_reschedule",  "bearer"),
 
     # ── handlers::events ────────────────────────────────────────────────
     Endpoint("events", "POST",   "/events",        "events.create", "bearer"),
@@ -122,9 +124,10 @@ ENDPOINTS: list[Endpoint] = [
     Endpoint("events", "DELETE", "/events/{id}",   "events.delete", "bearer"),
 
     # ── handlers::event_occurrences (PR-D v0.2 unified Occurrence) ─────
-    Endpoint("events", "GET",    "/events/{id}/occurrences",           "events.occurrences_list",   "bearer"),
-    Endpoint("events", "POST",   "/events/{id}/occurrences/{date}",    "events.occurrences_set",    "bearer"),
-    Endpoint("events", "DELETE", "/events/{id}/occurrences/{date}",    "events.occurrences_delete", "bearer"),
+    Endpoint("events", "GET",    "/events/{id}/occurrences",                         "events.occurrences_list",        "bearer"),
+    Endpoint("events", "POST",   "/events/{id}/occurrences/{date}",                  "events.occurrences_set",         "bearer"),
+    Endpoint("events", "DELETE", "/events/{id}/occurrences/{date}",                  "events.occurrences_delete",      "bearer"),
+    Endpoint("events", "POST",   "/events/{id}/occurrences/{date}/reschedule",       "events.occurrences_reschedule",  "bearer"),
 
     # ── handlers::comments (creator-only) ───────────────────────────────
     Endpoint("comments", "PATCH",  "/comments/{comment_id}", "comments.patch",  "bearer"),

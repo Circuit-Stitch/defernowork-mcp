@@ -83,3 +83,24 @@ def register(
             except DefernoError as exc:
                 return format_error(exc)
         return json.dumps({"ok": True})
+
+    @mcp.tool()
+    async def reschedule_event_occurrence(
+        event_id: str,
+        date: str,
+        new_date: str,
+        ctx: Context = None,
+    ) -> str:
+        """Move a single event occurrence to ``new_date`` without touching the RRULE.
+
+        The origin date's row is marked ``Dropped`` (with
+        ``rescheduled_to=new_date``); a fresh ``Scheduled`` row lands on
+        the target date (with ``rescheduled_from=origin_date``). 400 if
+        ``new_date`` equals the origin date.
+        """
+        async with (await get_client(ctx=ctx)) as client:
+            try:
+                occ = await client.reschedule_event_occurrence(event_id, date, new_date)
+            except DefernoError as exc:
+                return format_error(exc)
+        return json.dumps(occ)

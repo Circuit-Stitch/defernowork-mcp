@@ -1,0 +1,22 @@
+{
+  "operation": "chores.occurrences_reschedule",
+  "method": "POST",
+  "path_template": "/chores/{id}/occurrences/{date}/reschedule",
+  "auth": "bearer",
+  "request": {
+    "headers_required": ["Authorization"],
+    "body": {
+      "required": ["new_date"],
+      "optional": [],
+      "example": {"new_date": "2026-05-17"}
+    }
+  },
+  "responses": [
+    {"status": 501, "shape": {}, "example": {}}
+  ],
+  "client_method": "reschedule_chore_occurrence",
+  "client_args_from_example": ["new_date"],
+  "mcp_tool": "reschedule_chore_occurrence",
+  "mcp_tool_args_from_example": ["new_date"],
+  "notes": "Backend returns 501 today (legacy chore storage). Tool exposed for forward compat -- when storage migrates this becomes 200 with the new Occurrence."
+}
