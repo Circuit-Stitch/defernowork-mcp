@@ -13,8 +13,9 @@ import httpx
 # takes to flip API_VERSION. Once the backend has settled on "0.2" and a
 # rollback to "0.1" is no longer plausible, drop "0.1" from this set.
 SUPPORTED_API_VERSIONS: frozenset[str] = frozenset({"0.1", "0.2"})
-# Convenience alias for code that wants the "preferred" / latest version
-# (e.g. test envelope wrappers, version-equality checks against spec_runner).
+# Exported so tests (and any future API-negotiation code) can pick the
+# "preferred" / latest supported version without depending on the order
+# of the frozenset literal.
 SUPPORTED_API_VERSION = "0.2"
 
 

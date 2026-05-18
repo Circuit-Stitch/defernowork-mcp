@@ -1,4 +1,4 @@
-"""v0.1 envelope contract: client._request unwraps + validates version."""
+"""Envelope contract (v0.1 + v0.2): client._request unwraps + validates version."""
 
 from __future__ import annotations
 
@@ -111,4 +111,6 @@ async def test_rejects_unsupported_version(client: DefernoClient):
     )
     with pytest.raises(DefernoError) as exc_info:
         await client.list_tasks()
+    assert exc_info.value.status_code == 502
     assert "0.3" in str(exc_info.value)
+    assert "unsupported" in exc_info.value.message.lower()

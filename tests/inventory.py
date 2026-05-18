@@ -3,7 +3,8 @@
 Cross-checks:
   1. ``Deferno/docs/architecture.md`` (the documented contract)
   2. ``tests/endpoint_registry.py``  (hand-curated per Rust handler)
-  3. ``tests/spec/v0.1/<resource>/`` (the on-disk fixtures)
+  3. ``tests/spec/v{ver}/<resource>/`` for each ``ver`` in
+     ``SUPPORTED_API_VERSIONS`` (the on-disk fixtures)
 
 Any inconsistency raises ``InventoryMismatch``. Used by
 ``test_every_endpoint_has_a_fixture`` to gate CI.
@@ -18,7 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from tests.endpoint_registry import ENDPOINTS
-from tests.spec_runner import SUPPORTED_API_VERSION, SUPPORTED_API_VERSIONS
+from tests.spec_runner import SUPPORTED_API_VERSIONS
 
 SPEC_DIR = Path(__file__).resolve().parent / "spec"
 

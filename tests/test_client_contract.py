@@ -23,7 +23,6 @@ from defernowork_mcp.client import DefernoClient, DefernoError
 from tests.spec_runner import (
     Fixture,
     PLACEHOLDER_UUID,
-    SUPPORTED_API_VERSION,
     SUPPORTED_API_VERSIONS,
     assert_request_matches_spec,
     assert_response_matches_shape,
