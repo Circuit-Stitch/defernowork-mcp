@@ -178,6 +178,16 @@ Environment variables:
 | `DEFERNO_TOKEN`     | _(unset)_               | Pre-existing bearer token; skips browser login |
 | `DEFERNO_LOG_LEVEL` | `WARNING`               | Python logging level                           |
 
+## API envelope versions
+
+The MCP server speaks both `0.1` and `0.2` of the Deferno API envelope
+during the v0.1 → v0.2 backend cutover window. No client-side
+configuration is needed — `DefernoClient` accepts either envelope
+and unwraps `data` the same way. The set is defined as
+`SUPPORTED_API_VERSIONS` in `src/defernowork_mcp/client.py`; after the
+backend has settled on `"0.2"` and rollback to `"0.1"` is no longer
+plausible, drop `"0.1"` from the frozenset.
+
 ## Client configuration snippets
 
 ### Claude Desktop / Claude Code (Interactive method)
