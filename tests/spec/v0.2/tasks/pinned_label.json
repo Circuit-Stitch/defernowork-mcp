@@ -1,0 +1,29 @@
+{
+  "operation": "tasks.pinned_label",
+  "method": "PATCH",
+  "path_template": "/tasks/pinned/{id}",
+  "auth": "bearer",
+  "request": {
+    "headers_required": ["Authorization"],
+    "body": {
+      "required": ["label"],
+      "optional": [],
+      "example": {"label": "Q3"}
+    }
+  },
+  "responses": [
+    {"status": 204, "shape": "null", "example": null},
+    {
+      "status": 404,
+      "error_example": {
+        "code": "not_found",
+        "message": "task is not pinned"
+      }
+    }
+  ],
+  "client_method": "update_pinned_label",
+  "client_args_from_example": ["label"],
+  "mcp_tool": "update_pinned_label",
+  "mcp_tool_args_from_example": ["label"],
+  "notes": "Backend payload UpdatePinnedLabelPayload has field `label: Option<String>` -- pass null to clear. The body is sent unconditionally as {label: <value>} (including null), since this PATCH is the only way to clear a label. The {id} path placeholder is the underlying task UUID; the pinned list has no separate pin-record id."
+}

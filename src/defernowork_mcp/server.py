@@ -49,6 +49,7 @@ from .tools import (
     register_feedback,
     register_habits,
     register_items,
+    register_pinned,
     register_saved_searches,
     register_task_attachments,
     register_tasks,
@@ -293,6 +294,7 @@ def create_server(http_transport: bool = False) -> FastMCP:
     register_saved_searches(mcp, _get_client_async, _format_error, _compact, _UNSET)
     register_feedback(mcp, _get_client_async, _format_error, _compact, _UNSET)
     register_items(mcp, _get_client_async, _format_error)
+    register_pinned(mcp, _get_client_async, _format_error)
     register_daily_plan(mcp, _get_client_async, _format_error)
 
     # ── Resources ─────────────────────────────────────────────────

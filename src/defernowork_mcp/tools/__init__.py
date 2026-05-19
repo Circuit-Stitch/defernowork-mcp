@@ -8,6 +8,7 @@ from .events import register as register_events
 from .feedback import register as register_feedback
 from .habits import register as register_habits
 from .items import register as register_items
+from .pinned import register as register_pinned
 from .saved_searches import register as register_saved_searches
 from .task_attachments import register as register_task_attachments
 from .tasks import register as register_tasks
@@ -22,6 +23,7 @@ __all__ = [
     "register_feedback",
     "register_habits",
     "register_items",
+    "register_pinned",
     "register_saved_searches",
     "register_task_attachments",
     "register_tasks",

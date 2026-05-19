@@ -717,6 +717,44 @@ class DefernoClient:
             "POST", f"/items/{item_id}/pin", json_body={"pinned": pinned}
         )
 
+    # ----------------------------------------------------------- pinned tasks
+    async def list_pinned_tasks(self) -> list[dict[str, Any]]:
+        """Return the user's sidebar-pinned items in display order.
+
+        Each entry has the shape ``{task: TaskSummary, label: str | null}``.
+        The handler reconciles inconsistencies on every call (drops list
+        entries whose underlying task is no longer pinned or has been
+        deleted), so the result is always self-consistent.
+        """
+        return await self._request("GET", "/tasks/pinned")
+
+    async def reorder_pinned_tasks(self, task_ids: list[str]) -> None:
+        """Replace the pinned-list ordering with ``task_ids``.
+
+        Wire body is ``{"task_ids": [uuid, ...]}`` — NOT ``ids``. Must be
+        an exact permutation of the user's current pinned set; the backend
+        rejects sets with extra/missing/duplicate ids with 400. Returns 204.
+        """
+        await self._request(
+            "POST", "/tasks/pinned/reorder", json_body={"task_ids": task_ids}
+        )
+
+    async def update_pinned_label(
+        self, task_id: str, label: str | None
+    ) -> None:
+        """Set or clear the custom sidebar label for a pinned task.
+
+        Pass ``label=None`` to clear. The body is sent unconditionally as
+        ``{"label": label}`` (including the JSON ``null``) — there is no
+        other way to clear a label. Returns 204 on success; 404 if the
+        task is not in the user's pinned list.
+        """
+        await self._request(
+            "PATCH",
+            f"/tasks/pinned/{task_id}",
+            json_body={"label": label},
+        )
+
     # ---------------------------------------------------------- tasks (extras)
     async def delete_task(self, task_id: str) -> None:
         await self._request("DELETE", f"/tasks/{task_id}")

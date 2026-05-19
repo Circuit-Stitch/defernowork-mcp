@@ -1,0 +1,51 @@
+{
+  "operation": "tasks.pinned_get",
+  "method": "GET",
+  "path_template": "/tasks/pinned",
+  "auth": "bearer",
+  "request": {
+    "headers_required": ["Authorization"]
+  },
+  "responses": [
+    {
+      "status": 200,
+      "shape": [
+        {
+          "task": {
+            "id": "uuid",
+            "title": "string",
+            "status": "string",
+            "labels": ["string"],
+            "pinned": "boolean",
+            "_required": ["id", "title", "status", "pinned"]
+          },
+          "label": "string",
+          "_required": ["task"]
+        }
+      ],
+      "example": [
+        {
+          "task": {
+            "id": "00000000-0000-0000-0000-000000000001",
+            "title": "Draft Q3 plan",
+            "status": "Open",
+            "labels": ["work"],
+            "parent_id": null,
+            "children": [],
+            "complete_by": null,
+            "productive": null,
+            "desire": null,
+            "date_created": "2026-05-10T12:00:00Z",
+            "pinned": true
+          },
+          "label": "Q3"
+        }
+      ]
+    }
+  ],
+  "client_method": "list_pinned_tasks",
+  "client_args_from_example": [],
+  "mcp_tool": "list_pinned_tasks",
+  "mcp_tool_args_from_example": [],
+  "notes": "Returns Vec<PinnedTaskResponse> = [{task: TaskSummary, label: Option<String>}]. The list itself has no separate pin-record id -- entries are keyed on task.id, which is also what PATCH /tasks/pinned/{id} uses. Backend reconciles inconsistencies on every call (drops entries whose underlying task is unpinned or deleted)."
+}
