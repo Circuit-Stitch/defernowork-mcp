@@ -35,6 +35,16 @@ def register(
         ``recurrence`` follows the same shape as Task: ``{"type": "daily"}``,
         ``{"type": "every_n_days", "n": 3}``, or
         ``{"type": "weekly", "days": ["Mon", "Wed"]}``.
+
+        v0.2 optional fields:
+        - ``cadence_mode``: ``"rolling"`` (default; the next occurrence is
+          computed from the actual completion time) or ``"fixed"`` (the next
+          occurrence is anchored to the original schedule, ignoring completion
+          delay).
+        - ``deadline_time_of_day``: ``"HH:MM"`` time-of-day deadline within
+          ``scheduled_date`` (user's TZ). Defaults to end-of-day.
+        - ``subtask_template``: a list of subtask shapes that materialize as
+          child Tasks on each occurrence. Empty list (default) means no template.
         """
         payload = compact({
             "title": title,
@@ -66,6 +76,16 @@ def register(
         ``complete_by`` cannot be cleared on chores. Pass new value to shift
         the schedule. Updating ``recurrence`` rotates the chore's series ID
         so prior occurrences remain attached to the old definition.
+
+        v0.2 optional fields:
+        - ``cadence_mode``: ``"rolling"`` (default; the next occurrence is
+          computed from the actual completion time) or ``"fixed"`` (the next
+          occurrence is anchored to the original schedule, ignoring completion
+          delay).
+        - ``deadline_time_of_day``: ``"HH:MM"`` time-of-day deadline within
+          ``scheduled_date`` (user's TZ). Defaults to end-of-day.
+        - ``subtask_template``: a list of subtask shapes that materialize as
+          child Tasks on each occurrence. Empty list (default) means no template.
         """
         payload = compact({
             "title": title,
@@ -122,8 +142,12 @@ def register(
     ) -> str:
         """Set the status of a single chore occurrence.
 
-        ``status`` must be one of ``"in_progress"``, ``"done"``, or
-        ``"skipped"``. ``date`` is YYYY-MM-DD.
+        ``status`` is the action to apply: one of ``"in_progress"``,
+        ``"done"``, or ``"dropped"`` (alias: ``"skipped"`` for legacy
+        callers). ``date`` is YYYY-MM-DD.
+
+        Note: ``Done`` resolves on the server to either ``DoneOnTime``
+        or ``DoneLate`` based on the occurrence's ``complete_by``.
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
@@ -145,6 +169,13 @@ def register(
         Useful for the common "I just did the dishes" case where the user
         doesn't want to look up which date is overdue. 404 if no
         unresolved occurrence exists.
+
+        ``status`` is the action to apply: one of ``"in_progress"``,
+        ``"done"``, or ``"dropped"`` (alias: ``"skipped"`` for legacy
+        callers).
+
+        Note: ``Done`` resolves on the server to either ``DoneOnTime``
+        or ``DoneLate`` based on the occurrence's ``complete_by``.
         """
         async with (await get_client(ctx=ctx)) as client:
             try:

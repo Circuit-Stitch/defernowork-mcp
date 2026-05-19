@@ -32,6 +32,9 @@ def register(
 
         ``complete_by`` is the start time (ISO-8601). ``end_time`` (if
         provided) must be at or after ``complete_by``.
+
+        v0.2 optional fields:
+        - ``subtask_template``: list of subtask shapes materialized per occurrence.
         """
         payload = compact({
             "title": title,
@@ -60,7 +63,11 @@ def register(
         recurrence: dict[str, Any] | None = unset,
         ctx: Context = None,
     ) -> str:
-        """Patch mutable fields on an event. Backend rejects ``end_time`` < ``complete_by``."""
+        """Patch mutable fields on an event. Backend rejects ``end_time`` < ``complete_by``.
+
+        v0.2 optional fields:
+        - ``subtask_template``: list of subtask shapes materialized per occurrence.
+        """
         payload = compact({
             "title": title,
             "complete_by": complete_by,

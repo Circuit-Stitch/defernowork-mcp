@@ -34,6 +34,10 @@ def register(
         ``recurrence`` follows the same shape as Task: ``{"type": "daily"}``,
         ``{"type": "every_n_days", "n": 3}``, or
         ``{"type": "weekly", "days": ["Mon", "Wed"]}``.
+
+        v0.2 optional fields:
+        - ``deadline_time_of_day``: ``"HH:MM"`` time-of-day deadline (user's TZ).
+        - ``subtask_template``: list of subtask shapes materialized per occurrence.
         """
         payload = compact({
             "title": title,
@@ -60,7 +64,12 @@ def register(
         labels: list[str] | None = unset,
         ctx: Context = None,
     ) -> str:
-        """Patch mutable fields on a habit. Omitted fields stay untouched."""
+        """Patch mutable fields on a habit. Omitted fields stay untouched.
+
+        v0.2 optional fields:
+        - ``deadline_time_of_day``: ``"HH:MM"`` time-of-day deadline (user's TZ).
+        - ``subtask_template``: list of subtask shapes materialized per occurrence.
+        """
         payload = compact({
             "title": title,
             "description": description,

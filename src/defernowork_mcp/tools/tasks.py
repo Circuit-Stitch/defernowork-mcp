@@ -107,6 +107,11 @@ def register(
         Must be one of ``"chore"`` (lingers until done, default),
         ``"habit"`` (fresh start each day), or ``"event"`` (time-bound,
         can't be made up). Only meaningful when ``recurrence`` is set.
+
+        v0.2 optional field:
+        - ``occurrence_id``: when this Task is a materialized subtask of a
+          recurring entity's occurrence, the Occurrence id it belongs to.
+          Normal tasks omit this field.
         """
         payload = compact(
             {
@@ -168,6 +173,11 @@ def register(
         If the task is recurring and scope is missing, the call will fail
         with a message asking you to specify the scope — ask the user
         which option they prefer.
+
+        v0.2 optional field:
+        - ``occurrence_id``: when this Task is a materialized subtask of a
+          recurring entity's occurrence, the Occurrence id it belongs to.
+          Normal tasks omit this field.
         """
         payload = compact(
             {
