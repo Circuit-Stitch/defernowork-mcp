@@ -761,3 +761,16 @@ class DefernoClient:
 
     async def import_data(self, payload: dict[str, Any]) -> dict[str, Any]:
         return await self._request("POST", "/tasks/import", json_body=payload)
+
+    async def promote_task(self, task_id: str, target_org_id: str) -> None:
+        """Promote a personal-org task into ``target_org_id``.
+
+        The caller must own the task in their personal org and be a member
+        of ``target_org_id``. The backend re-encrypts the task under the
+        target org's DEK. Returns ``None`` (envelope ``data`` is ``null``).
+        """
+        await self._request(
+            "POST",
+            f"/tasks/{task_id}/promote",
+            json_body={"target_org_id": target_org_id},
+        )

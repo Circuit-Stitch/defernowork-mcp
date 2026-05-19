@@ -94,6 +94,7 @@ ENDPOINTS: list[Endpoint] = [
     Endpoint("tasks", "POST",   "/tasks/{id}/merge",            "tasks.merge",           "bearer"),
     Endpoint("tasks", "POST",   "/tasks/{id}/fold",             "tasks.fold",            "bearer"),
     Endpoint("tasks", "POST",   "/tasks/{id}/move",             "tasks.move",            "bearer"),
+    Endpoint("tasks", "POST",   "/tasks/{id}/promote",          "tasks.promote",         "bearer"),
     Endpoint("tasks", "GET",    "/tasks/{task_id}/comments",    "tasks.comments_list",   "bearer"),
     Endpoint("tasks", "POST",   "/tasks/{task_id}/comments",    "tasks.comments_create", "bearer"),
     Endpoint("tasks", "GET",    "/tasks/pinned",                "tasks.pinned_get",      "bearer"),

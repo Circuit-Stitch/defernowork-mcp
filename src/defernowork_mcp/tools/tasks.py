@@ -414,6 +414,27 @@ def register(
         return json.dumps(result)
 
     @mcp.tool()
+    async def promote_task(
+        task_id: str,
+        target_org_id: str,
+        ctx: Context = None,
+    ) -> str:
+        """Promote a personal-org task into a target org.
+
+        Moves the task from the caller's personal org into ``target_org_id``,
+        re-encrypting it under the target org's data-encryption key. The
+        caller must own the task in their personal org AND be a member of
+        ``target_org_id``. Returns JSON ``null`` on success (the backend
+        returns no body).
+        """
+        async with (await get_client(ctx=ctx)) as client:
+            try:
+                await client.promote_task(task_id, target_org_id)
+            except DefernoError as exc:
+                return format_error(exc)
+        return json.dumps(None)
+
+    @mcp.tool()
     async def batch_tasks(
         operations: list[dict[str, Any]],
         ctx: Context = None,

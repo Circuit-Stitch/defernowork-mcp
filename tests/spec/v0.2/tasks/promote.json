@@ -1,0 +1,24 @@
+{
+  "operation": "tasks.promote",
+  "method": "POST",
+  "path_template": "/tasks/{id}/promote",
+  "auth": "bearer",
+  "request": {
+    "headers_required": ["Authorization"],
+    "body": {
+      "required": ["target_org_id"],
+      "optional": [],
+      "example": {
+        "target_org_id": "00000000-0000-0000-0000-000000000001"
+      }
+    }
+  },
+  "responses": [
+    {"status": 200, "shape": "null", "example": null}
+  ],
+  "client_method": "promote_task",
+  "client_args_from_example": ["target_org_id"],
+  "mcp_tool": "promote_task",
+  "mcp_tool_args_from_example": ["target_org_id"],
+  "notes": "Promotes a personal-org task into a target org. Backend payload struct PromoteTaskPayload has field `target_org_id: Uuid`. Caller must own the task in their personal org AND be a member of `target_org_id`. The task is re-encrypted under the target org's DEK. Returns `Versioned::ok(())` -> HTTP 200 with envelope `{version, data: null, error: null}` (NOT 201, NOT 204)."
+}
