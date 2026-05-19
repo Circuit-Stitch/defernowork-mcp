@@ -111,7 +111,7 @@ class DefernoClient:
                 response.text or response.reason_phrase or "error",
             )
 
-        # All v0.1 responses must be envelope-shaped: {version, data, error}
+        # All envelope-versioned responses must be shaped {version, data, error}.
         if not isinstance(payload, dict) or "version" not in payload:
             raise DefernoError(
                 502,
