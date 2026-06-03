@@ -35,17 +35,27 @@ class RefForm(Enum):
     """The recognised shapes of a **Ref input form**.
 
     ``UUID``, ``SEQUENCE``, ``CANONICAL`` and ``APP_URL`` are the unambiguous
-    forms the MCP auto-routes. ``NOT_AUTO_ROUTED`` is the explicit sentinel for
-    everything the classifier deliberately refuses to auto-route today —
-    Alias / GitHub (``owner/repo#N``, ``ABC-223``) and any other ambiguous
-    string. Issue #9 will add finer-grained alias outcomes here; callers should
-    treat any non-auto-routed form as "needs the explicit alias path".
+    forms the MCP auto-routes. ``ALIAS`` (issue #9) is the *unambiguous GitHub
+    form* ``owner/repo#N`` — it carries a ``/`` (so it can never be a Canonical
+    ref or UUID) plus a ``#N`` suffix — which auto-routes to the by-alias
+    endpoint. ``NOT_AUTO_ROUTED`` is the explicit sentinel for everything the
+    classifier deliberately refuses to auto-route — ambiguous Alias strings
+    like ``ABC-223`` (which collides with a Canonical ref) and any other
+    unrecognised string. Callers force alias resolution for those via the
+    explicit escape-hatch (``get_item(as_alias=True)``).
+
+    Deliberately NOT inferred here: whether a *bare* ``#N`` means a Deferno
+    Sequence shorthand or an upstream tracker issue. A bare ``#N`` always
+    classifies as ``SEQUENCE`` today; a **context-adaptive** classifier that
+    infers Deferno-`#` vs GitHub-`#` from conversation is the future goal (see
+    CONTEXT.md "Flagged ambiguities"), NOT part of this slice.
     """
 
     UUID = "uuid"
     SEQUENCE = "sequence"
     CANONICAL = "canonical"
     APP_URL = "app_url"
+    ALIAS = "alias"
     NOT_AUTO_ROUTED = "not_auto_routed"
 
 
@@ -63,6 +73,8 @@ class RefClassification:
     - ``canonical`` — the ``{org_slug}-{sequence}`` string for
       :attr:`RefForm.CANONICAL`, and synthesised for a sequence-bearing App URL.
     - ``org_slug`` — the org namespace, for canonical refs and app URLs.
+    - ``alias`` — the raw external alias string for :attr:`RefForm.ALIAS`
+      (e.g. ``owner/repo#N``); passed verbatim to the by-alias endpoint.
     """
 
     form: RefForm
@@ -70,6 +82,7 @@ class RefClassification:
     sequence: int | None = None
     canonical: str | None = None
     org_slug: str | None = None
+    alias: str | None = None
 
 
 # ── Compact projection (per ADR-0002) ───────────────────────────────────────
@@ -140,8 +153,12 @@ async def resolve_ref(client: "DefernoClient", ref: str) -> str:
       (resolves the org slug globally — works across orgs).
     - ``APP_URL`` -> by id when the tail is a UUID, else by-ref using the
       embedded ``{slug}-{seq}`` (cross-org safe; never by-seq).
-    - ``NOT_AUTO_ROUTED`` (Alias / GitHub / ambiguous) -> raises
-      :class:`DefernoError` (400). Issue #9 owns the explicit alias path.
+    - ``ALIAS`` (unambiguous GitHub ``owner/repo#N``) ->
+      ``GET /items/by-alias/{alias}`` (issue #9), so the GitHub form works
+      transparently across every id-taking tool.
+    - ``NOT_AUTO_ROUTED`` (ambiguous alias like ``ABC-223`` / unrecognised) ->
+      raises :class:`DefernoError` (400). Force alias resolution for those via
+      the explicit escape-hatch ``get_item(as_alias=True)``.
 
     Backend read errors (404 not-found, etc.) propagate as
     :class:`DefernoError`.
@@ -164,6 +181,10 @@ async def resolve_ref(client: "DefernoClient", ref: str) -> str:
 
     if c.form in (RefForm.CANONICAL, RefForm.APP_URL):
         item = await client.get_item_by_ref(c.canonical)  # type: ignore[arg-type]
+        return _uuid_of(item)
+
+    if c.form is RefForm.ALIAS:
+        item = await client.get_item_by_alias(c.alias)  # type: ignore[arg-type]
         return _uuid_of(item)
 
     raise DefernoError(
@@ -290,7 +311,11 @@ def classify_ref(value: str) -> RefClassification:
 
     Pure and synchronous: no I/O, no globals. Order matters — UUID is checked
     before the canonical-ref shape because a UUID also matches
-    ``{slug}-{digits}`` under a naive split.
+    ``{slug}-{digits}`` under a naive split. The :attr:`RefForm.ALIAS` (GitHub
+    ``owner/repo#N``) check comes LAST, just before ``NOT_AUTO_ROUTED``: every
+    auto-routed form above (UUID, App URL, Sequence, Canonical) is checked
+    first, so adding ALIAS cannot reclassify any existing form — only strings
+    that would otherwise be ``NOT_AUTO_ROUTED`` can become ALIAS.
     """
     s = value.strip()
 
@@ -314,5 +339,14 @@ def classify_ref(value: str) -> RefClassification:
             org_slug=slug,
             sequence=n,
         )
+
+    # Unambiguous GitHub form ``owner/repo#N`` -> ALIAS (issue #9). It has a
+    # ``#N`` suffix (digits after the LAST ``#``) AND a ``/`` in the part before
+    # that ``#`` — a shape a Canonical ref / UUID / Sequence / App URL can never
+    # take, so it routes to by-alias. Ambiguous aliases without that ``/``
+    # (e.g. ``ABC-223``) stay NOT_AUTO_ROUTED and need the explicit escape-hatch.
+    before, hashmark, after = s.rpartition("#")
+    if hashmark and "/" in before and after.isdigit():
+        return RefClassification(form=RefForm.ALIAS, alias=s)
 
     return RefClassification(form=RefForm.NOT_AUTO_ROUTED)

@@ -667,6 +667,24 @@ class DefernoClient:
             "GET", f"/items/by-ref/{quote(canonical, safe='')}"
         )
 
+    async def get_item_by_alias(self, alias: str) -> dict[str, Any]:
+        """Resolve an external **Alias** to an item (``GET /items/by-alias/{alias}``).
+
+        ``alias`` is an upstream-tracker identifier — e.g. the unambiguous
+        GitHub form ``owner/repo#N``, or an ambiguous string like ``ABC-223``
+        forced down the alias path via ``get_item(as_alias=True)``. The alias is
+        URL-quoted with ``safe=''`` (mirroring :meth:`get_item_by_ref`), so the
+        ``/`` and ``#`` in ``owner/repo#N`` are percent-encoded. Returns the
+        resolved item in the same flat ItemEnvelope shape as by-seq / by-ref.
+
+        NOTE: aliases only RESOLVE server-side once Deferno's **External tasks**
+        feature ships; the route exists today, so routing + the escape-hatch are
+        implementable and testable (mocked) now.
+        """
+        return await self._request(
+            "GET", f"/items/by-alias/{quote(alias, safe='')}"
+        )
+
     async def list_items(
         self,
         *,

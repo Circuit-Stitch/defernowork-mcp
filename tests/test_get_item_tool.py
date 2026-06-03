@@ -179,6 +179,36 @@ async def test_all_forms_resolve_to_the_same_item(server):
     assert ids == [ITEM_UUID] * 4
 
 
+# ── explicit alias escape-hatch (issue #9) ───────────────────────────────────
+
+
+@respx.mock
+async def test_get_item_as_alias_bypasses_classifier(server):
+    # ``ABC-223`` collides with a Canonical ref, so the bare classifier would
+    # NOT auto-route it (NOT_AUTO_ROUTED -> 400). ``as_alias=True`` forces a
+    # direct by-alias lookup, bypassing classify_ref entirely — the escape-hatch
+    # for the Deferno-`#` vs GitHub-`#` ambiguity until a context-adaptive
+    # classifier exists. A single by-alias call returns the item (no by-id leg).
+    by_alias = respx.get(f"{BASE}/items/by-alias/ABC-223").mock(
+        return_value=httpx.Response(200, json=_env(FULL_ITEM))
+    )
+    out = await _call(server, item="ABC-223", as_alias=True)
+    assert by_alias.called
+    assert out["id"] == ITEM_UUID
+    # Compact-by-default projection still applies on the alias path.
+    assert out["kind"] == "task"
+    assert "actions" not in out
+
+
+@respx.mock
+async def test_get_item_as_alias_full_returns_everything(server):
+    respx.get(f"{BASE}/items/by-alias/ABC-223").mock(
+        return_value=httpx.Response(200, json=_env(FULL_ITEM))
+    )
+    out = await _call(server, item="ABC-223", as_alias=True, full=True)
+    assert out == FULL_ITEM
+
+
 # ── not-found ────────────────────────────────────────────────────────────────
 
 

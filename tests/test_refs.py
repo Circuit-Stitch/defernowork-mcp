@@ -90,15 +90,32 @@ def test_classify_uppercase_alias_is_not_auto_routed():
     assert result.form is RefForm.NOT_AUTO_ROUTED
 
 
-def test_classify_owner_repo_alias_is_not_auto_routed():
+def test_classify_owner_repo_alias_auto_routes_to_alias():
+    # Issue #9: ``owner/repo#N`` is the UNAMBIGUOUS GitHub form — it contains a
+    # ``/`` (so it can't be a Canonical ref or UUID) plus a ``#N`` suffix — and
+    # now auto-routes to RefForm.ALIAS (was NOT_AUTO_ROUTED before #9).
     result = classify_ref("octo/repo#44")
-    assert result.form is RefForm.NOT_AUTO_ROUTED
+    assert result.form is RefForm.ALIAS
+    assert result.alias == "octo/repo#44"
 
 
 def test_classify_garbage_is_not_auto_routed():
     assert classify_ref("not a ref").form is RefForm.NOT_AUTO_ROUTED
     assert classify_ref("acme-").form is RefForm.NOT_AUTO_ROUTED
     assert classify_ref("-123").form is RefForm.NOT_AUTO_ROUTED
+
+
+def test_classify_ambiguous_forms_stay_not_auto_routed_after_alias():
+    # Issue #9 ONLY auto-routes the unambiguous ``owner/repo#N`` shape. Every
+    # other ambiguous form is unchanged — they have no ``/``-before-``#N``:
+    #   - ``ABC-223`` collides with a Canonical ref (the explicit escape-hatch
+    #     forces alias resolution for it; it is NOT auto-routed here).
+    #   - bare ``#44`` is a Deferno Sequence shorthand (caught earlier), NOT a
+    #     GitHub alias — this is the documented Deferno-`#` vs GitHub-`#`
+    #     ambiguity; only ``owner/repo#N`` carries the ``/`` that disambiguates.
+    assert classify_ref("ABC-223").form is RefForm.NOT_AUTO_ROUTED
+    assert classify_ref("#44").form is RefForm.SEQUENCE
+    assert classify_ref("acme-123").form is RefForm.CANONICAL
 
 
 # ── pure classifier: App URL ─────────────────────────────────────────────────
@@ -181,6 +198,20 @@ async def test_resolve_ref_canonical_calls_by_ref():
     )
     async with _client() as client:
         result = await resolve_ref(client, "u-1y0e2v-123")
+    assert route.called
+    assert result == UUID_STR
+
+
+@respx.mock
+async def test_resolve_ref_github_alias_calls_by_alias():
+    # Issue #9: the unambiguous GitHub form ``owner/repo#N`` resolves via
+    # GET /items/by-alias/{alias}; the alias is URL-quoted with safe='' so
+    # ``octo/repo#44`` -> ``octo%2Frepo%2344``.
+    route = respx.get(f"{BASE}/items/by-alias/octo%2Frepo%2344").mock(
+        return_value=httpx.Response(200, json=_envelope({"id": UUID_STR, "kind": "task"}))
+    )
+    async with _client() as client:
+        result = await resolve_ref(client, "octo/repo#44")
     assert route.called
     assert result == UUID_STR
 

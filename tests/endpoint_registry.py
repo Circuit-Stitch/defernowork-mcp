@@ -59,6 +59,7 @@ ENDPOINTS: list[Endpoint] = [
     Endpoint("items", "GET",    "/items/{id}",             "items.get",             "bearer"),
     Endpoint("items", "GET",    "/items/by-ref/{canonical}", "items.get_by_ref",    "bearer"),
     Endpoint("items", "GET",    "/items/by-seq/{seq}",     "items.get_by_seq",      "bearer"),
+    Endpoint("items", "GET",    "/items/by-alias/{alias}", "items.get_by_alias",    "bearer"),
     Endpoint("items", "DELETE", "/items/{id}",             "items.delete",          "bearer"),
     Endpoint("items", "GET",    "/items/{id}/history",     "items.history",         "bearer"),
     Endpoint("items", "GET",    "/items/{id}/comments",    "items.comments_list",   "bearer"),

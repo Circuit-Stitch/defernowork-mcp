@@ -25,6 +25,7 @@ def register(
     async def get_item(
         item: str,
         full: bool = False,
+        as_alias: bool = False,
         ctx: Context = None,
     ) -> str:
         """Fetch a single item (Task / Habit / Chore / Event) by any reference.
@@ -37,10 +38,30 @@ def register(
           shared org, name it by its **Canonical ref** (``acme-123``) or its
           **App URL** instead -- both resolve across orgs;
         - a **Canonical ref** (``slug-123``, e.g. ``u-1y0e2v-123``);
-        - an **App URL** (``https://app.defernowork.com/o/{org_slug}/items/{seq-or-id}``).
+        - an **App URL** (``https://app.defernowork.com/o/{org_slug}/items/{seq-or-id}``);
+        - the unambiguous **GitHub Alias** ``owner/repo#N`` (it carries a ``/``,
+          so it can't be confused with a Canonical ref) -- auto-routed to the
+          by-alias endpoint.
 
-        Alias / GitHub forms (``owner/repo#N``, ``ABC-223``) are not auto-routed
-        yet and will be rejected.
+        **Deferno-`#` vs GitHub-`#` ambiguity.** A *bare* ``#N`` always means a
+        Deferno Sequence shorthand here; it is NOT inferred as a GitHub issue.
+        Likewise an ambiguous string like ``ABC-223`` collides with a Canonical
+        ref and is therefore NOT auto-routed to alias resolution. Inferring
+        which a user means from conversation is the job of a future
+        **context-adaptive** classifier (see CONTEXT.md "Flagged ambiguities"),
+        not this tool. Until then, use ``as_alias=true`` to force the alias path.
+
+        Args:
+            item: Any Ref input form (or, with ``as_alias=true``, a raw alias).
+            full: When ``true``, return the complete record (action history,
+                comments, children, mood, attachments, ...) instead of the
+                default compact projection.
+            as_alias: When ``true``, BYPASS the Ref classifier and look ``item``
+                up directly via ``GET /items/by-alias/{item}``. This is the
+                explicit escape-hatch for ambiguous external aliases (e.g.
+                ``ABC-223``) that the classifier deliberately will not
+                auto-route. The unambiguous GitHub form ``owner/repo#N`` already
+                routes to by-alias WITHOUT this flag.
 
         Returns a **compact** projection by default (a small whitelist of
         fields, including ``description``). Pass ``full=true`` for the complete
@@ -48,8 +69,13 @@ def register(
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
-                item_id = await resolve_ref(client, item)
-                record = await client.get_item(item_id)
+                if as_alias:
+                    # Explicit escape-hatch: skip classify_ref entirely and hit
+                    # by-alias with the raw string (one call, returns the item).
+                    record = await client.get_item_by_alias(item)
+                else:
+                    item_id = await resolve_ref(client, item)
+                    record = await client.get_item(item_id)
             except DefernoError as exc:
                 return format_error(exc)
         if full:
