@@ -8,6 +8,7 @@ from typing import Awaitable, Callable
 from mcp.server.fastmcp import Context, FastMCP
 
 from ..client import DefernoClient, DefernoError
+from ..refs import COMPACT_ITEM_FIELDS, project, resolve_ref
 
 
 def register(
@@ -15,6 +16,41 @@ def register(
     get_client: Callable[..., Awaitable[DefernoClient]],
     format_error: Callable[[DefernoError], str],
 ) -> None:
+    @mcp.tool()
+    async def get_item(
+        item: str,
+        full: bool = False,
+        ctx: Context = None,
+    ) -> str:
+        """Fetch a single item (Task / Habit / Chore / Event) by any reference.
+
+        ``item`` accepts any Ref input form and is resolved transparently:
+
+        - a **UUID** (``GET /items/{id}``);
+        - a **Sequence shorthand** -- ``#123`` or bare ``123``. This resolves
+          against your **personal org only**, by design. For an item in a
+          shared org, name it by its **Canonical ref** (``acme-123``) or its
+          **App URL** instead -- both resolve across orgs;
+        - a **Canonical ref** (``slug-123``, e.g. ``u-1y0e2v-123``);
+        - an **App URL** (``https://app.defernowork.com/o/{org_slug}/items/{seq-or-id}``).
+
+        Alias / GitHub forms (``owner/repo#N``, ``ABC-223``) are not auto-routed
+        yet and will be rejected.
+
+        Returns a **compact** projection by default (a small whitelist of
+        fields, including ``description``). Pass ``full=true`` for the complete
+        record (action history, comments, children, mood, attachments, ...).
+        """
+        async with (await get_client(ctx=ctx)) as client:
+            try:
+                item_id = await resolve_ref(client, item)
+                record = await client.get_item(item_id)
+            except DefernoError as exc:
+                return format_error(exc)
+        if full:
+            return json.dumps(record)
+        return json.dumps(project(record, COMPACT_ITEM_FIELDS))
+
     @mcp.tool()
     async def get_items_calendar(
         start: str,

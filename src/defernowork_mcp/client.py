@@ -637,6 +637,34 @@ class DefernoClient:
         return await self._request("PATCH", "/auth/me/settings", json_body=payload)
 
     # ----------------------------------------------------------------- items
+    async def get_item(self, item_id: str) -> dict[str, Any]:
+        """Fetch any item kind by UUID (``GET /items/{id}``).
+
+        Returns the flat ItemEnvelope view: the item's own fields plus the
+        computed ref fields (``ref``, ``org_slug``, ``sequence``, ``type``)
+        and the inner ``kind`` discriminator.
+        """
+        return await self._request("GET", f"/items/{item_id}")
+
+    async def get_item_by_sequence(self, seq: int | str) -> dict[str, Any]:
+        """Resolve a Sequence shorthand to an item (``GET /items/by-seq/{seq}``).
+
+        Personal-org only, by design — the backend ``by-seq`` route resolves
+        the sequence against the caller's personal org. Accepts a bare integer
+        (``123``); the backend also tolerates the ``#123`` shorthand form.
+        """
+        return await self._request("GET", f"/items/by-seq/{quote(str(seq), safe='')}")
+
+    async def get_item_by_ref(self, canonical: str) -> dict[str, Any]:
+        """Resolve a Canonical ref to an item (``GET /items/by-ref/{canonical}``).
+
+        ``canonical`` is ``{org_slug}-{sequence}`` (e.g. ``acme-123``). The
+        backend resolves the org slug globally, so this works across orgs.
+        """
+        return await self._request(
+            "GET", f"/items/by-ref/{quote(canonical, safe='')}"
+        )
+
     async def get_items_calendar(
         self, start: str, end: str, tz: str | None = None
     ) -> list[dict[str, Any]]:
