@@ -8,6 +8,7 @@ from typing import Any, Awaitable, Callable
 from mcp.server.fastmcp import Context, FastMCP
 
 from ..client import DefernoClient, DefernoError
+from ..refs import resolve_ref
 
 
 def register(
@@ -65,6 +66,10 @@ def register(
     ) -> str:
         """Patch mutable fields on an event. Backend rejects ``end_time`` < ``complete_by``.
 
+        ``event_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before the patch.
+
         v0.2 optional fields:
         - ``subtask_template``: list of subtask shapes materialized per occurrence.
         """
@@ -78,6 +83,7 @@ def register(
         })
         async with (await get_client(ctx=ctx)) as client:
             try:
+                event_id = await resolve_ref(client, event_id)
                 event = await client.update_event(event_id, payload)
             except DefernoError as exc:
                 return format_error(exc)
@@ -85,9 +91,15 @@ def register(
 
     @mcp.tool()
     async def delete_event(event_id: str, ctx: Context = None) -> str:
-        """Archive (soft-delete) an event."""
+        """Archive (soft-delete) an event.
+
+        ``event_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before the delete.
+        """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                event_id = await resolve_ref(client, event_id)
                 await client.delete_event(event_id)
             except DefernoError as exc:
                 return format_error(exc)

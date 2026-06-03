@@ -1,0 +1,41 @@
+{
+  "operation": "items.get_by_seq",
+  "method": "GET",
+  "path_template": "/items/by-seq/{seq}",
+  "auth": "bearer",
+  "request": {"headers_required": ["Authorization"]},
+  "responses": [
+    {
+      "status": 200,
+      "shape": {
+        "kind": "string",
+        "type": "string",
+        "id": "uuid",
+        "ref": "string",
+        "org_slug": "string",
+        "sequence": "number",
+        "title": "string",
+        "_required": ["kind", "type", "id", "org_slug"]
+      },
+      "example": {
+        "kind": "task",
+        "type": "task",
+        "id": "00000000-0000-0000-0000-000000000001",
+        "ref": "u-1y0e2v-123",
+        "org_slug": "u-1y0e2v",
+        "sequence": 123,
+        "title": "Demo"
+      }
+    },
+    {
+      "status": 404,
+      "error_shape": {"code": "string", "message": "string"},
+      "error_example": {"code": "not_found", "message": "item not found"}
+    }
+  ],
+  "client_method": "get_item_by_sequence",
+  "client_args_from_example": [],
+  "mcp_tool": null,
+  "mcp_tool_args_from_example": [],
+  "notes": "Sequence shorthand resolves against the personal org only (by-seq). Wire shape is the flat ItemEnvelope carrying BOTH discriminators: inner `kind` and envelope `type`."
+}

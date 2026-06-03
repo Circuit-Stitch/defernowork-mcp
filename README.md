@@ -10,38 +10,114 @@ client and every tool and resource below becomes available.
 
 ## What the agent can do
 
-**Tools** (function calls)
+### Reading items (kind-neutral)
 
-| Tool                | Purpose                                                     |
-| ------------------- | ----------------------------------------------------------- |
-| `start_auth`        | Begin browser-based login (returns a URL + session ID)      |
-| `complete_auth`     | Exchange the browser code for a saved token                 |
-| `logout`            | Invalidate session and remove saved credentials             |
-| `whoami`            | Return the currently authenticated user                     |
-| `list_tasks`        | List every task owned by the authenticated user             |
-| `get_task`          | Fetch a single task by UUID                                 |
-| `create_task`       | Create a new task (optionally nested under a parent)        |
-| `update_task`       | Patch any mutable field (title, description, status, mood…) |
-| `set_task_status`   | Convenience wrapper for `open`/`in-progress`/`done`/…       |
-| `move_task`         | Reparent or reorder a task in the hierarchy                 |
-| `split_task`        | Decompose a task into two child tasks                       |
-| `fold_task`         | Insert a next-step task into the sibling chain              |
-| `merge_task`        | Roll a parent's active children back into the parent        |
-| `get_daily_plan`    | Today's curated daily plan (recurring + carried forward)    |
-| `add_to_plan`       | Add a task to the daily plan by UUID                        |
-| `remove_from_plan`  | Remove a task from the daily plan                           |
-| `reorder_plan`      | Replace the daily plan ordering                             |
-| `get_calendar_events` | Query recurring + one-off events for a date range         |
-| `get_mood_history`  | Mood log for finished tasks                                 |
+Reads are **kind-neutral**: one set of tools spans Tasks, Habits, Chores, and
+Events. Every read returns a **Compact projection** by default — a small fixed
+field set chosen so reads don't flood the agent's context — and accepts
+`full=true` to get the complete record instead.
 
-**Resources** (readable by MCP clients that index resources)
+| Tool           | Purpose                                                                          |
+| -------------- | -------------------------------------------------------------------------------- |
+| `get_item`     | Fetch ONE item (any kind) by any [Ref input form](#ref-input-forms)              |
+| `list_items`   | Bounded, kind-neutral list backed by `GET /items` (filters + `limit` + `window`) |
+| `search_items` | Compact full-text search over items                                              |
 
-| URI                                | Content                        |
-| ---------------------------------- | ------------------------------ |
-| `defernowork://tasks`              | All tasks for the current user  |
-| `defernowork://tasks/plan`         | Today's curated daily plan      |
-| `defernowork://tasks/mood-history` | Mood log for finished tasks     |
-| `defernowork://task/{task_id}`     | A single task by UUID           |
+> **Removed:** the old task-list tools `list_tasks`, `get_task`, and
+> `search_tasks` are **gone**. Use the kind-neutral `list_items` / `get_item` /
+> `search_items` above instead. (Their `defernowork://tasks` and
+> `defernowork://task/{task_id}` resources were removed too — see the
+> [Resources](#resources) table.)
+
+**`get_item(item, full=False, as_alias=False)`** — fetch a single item by any
+[Ref input form](#ref-input-forms). Compact projection by default (single-item
+compact keeps `description`); `full=true` returns the complete record (action
+history, comments, children, mood, attachments…). `as_alias=true` forces the
+by-alias lookup for ambiguous external strings (e.g. `ABC-223`) that the
+classifier deliberately won't auto-route.
+
+**`list_items(kind=, status=, from_date=, to_date=, limit=, full=False, window=None)`**
+— the canonical bounded list. `kind` / `status` / `from_date` / `to_date`
+compose into an OData `$filter`; `limit` maps to `$top` (the backend caps it at
+**500** by *rejecting* larger values with a 400 — it does not silently clamp);
+`full=true` returns full rows; `window="all"` opts out of the default
+done-visibility window for full history. Compact list rows are narrower than
+`get_item` — roughly `ref`, `kind`, `title`, `status`, `complete_by`,
+`parent_id`, `labels`, with the body dropped.
+
+**`search_items(query, status=, label=, from_date=, to_date=, parent_id=, full=False)`**
+— compact full-text search; output is the same narrow Compact projection as
+`list_items` (`full=true` for full rows). Note: full-text is **Tasks-only** in
+the backend today (a kind-neutral `/items/search` is a known backend follow-on);
+use `list_items` to enumerate non-Task kinds.
+
+### Other tools
+
+| Tool                  | Purpose                                                      |
+| --------------------- | ----------------------------------------------------------- |
+| `start_auth`          | Begin browser-based login (returns a URL + session ID)      |
+| `complete_auth`       | Exchange the browser code for a saved token                 |
+| `logout`              | Invalidate session and remove saved credentials             |
+| `whoami`              | Return the currently authenticated user                     |
+| `create_task`         | Create a new task (optionally nested under a parent)        |
+| `update_task`         | Patch any mutable field (title, description, status, mood…) |
+| `set_task_status`     | Convenience wrapper for `open`/`in-progress`/`done`/…       |
+| `move_task`           | Reparent or reorder a task in the hierarchy                 |
+| `split_task`          | Decompose a task into two child tasks                       |
+| `fold_task`           | Insert a next-step task into the sibling chain              |
+| `merge_task`          | Roll a parent's active children back into the parent        |
+| `convert_item`        | Convert an item to a different kind (Task/Chore/Habit/Event)|
+| `create_chore` / `create_habit` / `create_event` | Create the other recurring/calendar item kinds |
+| `get_daily_plan`      | Today's curated daily plan (recurring + carried forward)    |
+| `get_items_plan`      | Daily plan across all item kinds (polymorphic)              |
+| `add_to_plan` / `remove_from_plan` / `reorder_plan` | Manage the daily plan ordering |
+| `get_calendar_events` | Query recurring + one-off events for a date range           |
+| `get_items_calendar`  | Calendar view across all item kinds                         |
+| `get_mood_history`    | Mood log for finished tasks                                 |
+
+Kind-specific **mutations** (`update_*`, `delete_*`, occurrence tools,
+attachment tools, etc.) accept any [Ref input form](#ref-input-forms) for their
+item-id arguments — [Transparent resolution](#ref-input-forms) resolves the ref
+to a UUID before the backend call runs. (This is the full list trimmed for
+brevity; every kind — Task, Habit, Chore, Event — has its own create/update/
+delete and occurrence/attachment tools.)
+
+### Ref input forms
+
+Anywhere a tool names a single item (and the `defernowork://item/{ref}`
+resource), the MCP accepts any **Ref input form** and resolves it to a UUID
+before acting — the agent never has to know which form it holds
+(*Transparent resolution*). The recognised forms are:
+
+| Form                  | Example                                                       | Notes                                              |
+| --------------------- | ------------------------------------------------------------ | -------------------------------------------------- |
+| **UUID**              | `b1c2…`                                                       | passed straight through (no lookup)                |
+| **Sequence shorthand**| `#123` or bare `123`                                          | resolves against your **personal org only**        |
+| **Canonical ref**     | `acme-123`, `u-1y0e2v-123`                                    | resolves across orgs                               |
+| **App URL**           | `https://app.defernowork.com/o/{org_slug}/items/{seq-or-id}` | paste verbatim; resolves across orgs               |
+| **GitHub alias**      | `owner/repo#N`                                                | auto-routes to by-alias (External tasks feature)   |
+
+A *bare* `#N` always means a Deferno Sequence shorthand here — it is **not**
+inferred as a GitHub issue. Ambiguous strings like `ABC-223` collide with a
+Canonical ref and are **not** auto-routed; use `get_item(item, as_alias=true)`
+to force the alias path. (Resolving the Deferno-`#` vs GitHub-`#` ambiguity from
+conversation is the job of a future context-adaptive classifier — see
+`CONTEXT.md` and `docs/adr/0001-transparent-ref-resolution.md`.)
+
+### Resources
+
+(readable by MCP clients that index resources)
+
+| URI                                | Content                                                       |
+| ---------------------------------- | ------------------------------------------------------------- |
+| `defernowork://tasks/plan`         | Today's curated daily plan                                    |
+| `defernowork://tasks/mood-history` | Mood log for finished tasks                                   |
+| `defernowork://item/{ref}`         | A single item by any [Ref input form](#ref-input-forms) (Compact) |
+
+The unbounded `defernowork://tasks` (all-tasks) and UUID-only
+`defernowork://task/{task_id}` resources were **removed** (per ADR-0002):
+unbounded reads flood agent context, and the any-ref `defernowork://item/{ref}`
+above supersedes the single-task resource.
 
 ## Install
 
@@ -180,13 +256,15 @@ Environment variables:
 
 ## API envelope versions
 
-The MCP server speaks both `0.1` and `0.2` of the Deferno API envelope
-during the v0.1 → v0.2 backend cutover window. No client-side
-configuration is needed — `DefernoClient` accepts either envelope
-and unwraps `data` the same way. The set is defined as
-`SUPPORTED_API_VERSIONS` in `src/defernowork_mcp/client.py`; after the
-backend has settled on `"0.2"` and rollback to `"0.1"` is no longer
-plausible, drop `"0.1"` from the frozenset.
+The MCP server intentionally speaks **both** `0.1` and `0.2` of the Deferno API
+envelope. This is **forward-prep**: the backend has not cut over yet — it still
+emits `0.1` today — and accepting `0.2` now means the MCP keeps working
+unchanged the moment an imminent `0.2` cutover lands (and during any partial
+rollout where both shapes are in flight). No client-side configuration is
+needed — `DefernoClient` accepts either envelope and unwraps `data` the same
+way. The set is defined as `SUPPORTED_API_VERSIONS` in
+`src/defernowork_mcp/client.py`; once the backend has settled on `"0.2"` and
+rollback to `"0.1"` is no longer plausible, drop `"0.1"` from the frozenset.
 
 ## Client configuration snippets
 
@@ -262,7 +340,14 @@ Syntax / import sanity check:
 python -c "from defernowork_mcp.server import create_server; create_server()"
 ```
 
-The server implementation is a single module (`src/defernowork_mcp/server.py`)
-plus a thin async HTTP client (`src/defernowork_mcp/client.py`) and
-credential storage (`src/defernowork_mcp/credentials.py`). Adding a new
-tool is a matter of wrapping a new client method in an `@mcp.tool()`.
+`src/defernowork_mcp/server.py` wires the server (auth, OAuth, resources) and
+delegates the tool surface to per-area modules under
+`src/defernowork_mcp/tools/` (e.g. `items.py`, `tasks.py`, `chores.py`,
+`habits.py`, `events.py`, …), each exposing a `register(mcp, get_client,
+format_error, …)` entry point. A thin async HTTP client
+(`src/defernowork_mcp/client.py`), credential storage
+(`src/defernowork_mcp/credentials.py`), and the shared Ref classifier/resolver
+(`src/defernowork_mcp/refs.py`) round it out. Adding a new tool is a matter of
+wrapping a new client method in an `@mcp.tool()` inside the relevant `tools/`
+module; any id argument should be run through `resolve_ref` so it accepts every
+[Ref input form](#ref-input-forms).

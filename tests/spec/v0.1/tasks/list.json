@@ -36,6 +36,7 @@
   ],
   "client_method": "list_tasks",
   "client_args_from_example": [],
-  "mcp_tool": "list_tasks",
-  "mcp_tool_args_from_example": []
+  "mcp_tool": null,
+  "mcp_tool_args_from_example": [],
+  "notes": "mcp_tool is null: the tasks-only read TOOL (list_tasks) was removed in #10 in favor of the kind-neutral list_items (GET /items). The GET /tasks endpoint and the client.list_tasks method remain, so client-layer contract coverage persists; there is no item TOOL that maps to GET /tasks."
 }

@@ -8,6 +8,7 @@ from typing import Any, Awaitable, Callable
 from mcp.server.fastmcp import Context, FastMCP
 
 from ..client import DefernoClient, DefernoError
+from ..refs import resolve_ref
 
 _UNSET = object()
 
@@ -19,67 +20,6 @@ def register(
     compact: Callable[[dict[str, Any]], dict[str, Any]],
     unset: object,
 ) -> None:
-    @mcp.tool()
-    async def list_tasks(ctx: Context = None) -> str:
-        """List every task owned by the authenticated user.
-
-        Returns a JSON array of task objects. Use ``get_task`` for full
-        detail on a specific task by id.
-        """
-        async with (await get_client(ctx=ctx)) as client:
-            try:
-                tasks = await client.list_tasks()
-            except DefernoError as exc:
-                return format_error(exc)
-        return json.dumps(tasks)
-
-    @mcp.tool()
-    async def search_tasks(
-        query: str,
-        status: str | None = None,
-        label: str | None = None,
-        from_date: str | None = None,
-        to_date: str | None = None,
-        parent_id: str | None = None,
-        ctx: Context = None,
-    ) -> str:
-        """Search tasks by title, description, or label.
-
-        Full-text search with optional filters. Prefer this over
-        ``list_tasks`` when looking for specific tasks.
-
-        Args:
-            query: Search query (min 2 characters). Searches title and description.
-            status: Filter by status (open, in-progress, in-review, done, dropped).
-            label: Filter by label tag.
-            from_date: Filter tasks due on or after this ISO 8601 date.
-            to_date: Filter tasks due on or before this ISO 8601 date.
-            parent_id: Scope search to children of this task (UUID).
-        """
-        async with (await get_client(ctx=ctx)) as client:
-            try:
-                tasks = await client.search_tasks(
-                    query,
-                    status=status,
-                    label=label,
-                    from_date=from_date,
-                    to_date=to_date,
-                    parent_id=parent_id,
-                )
-            except DefernoError as exc:
-                return format_error(exc)
-        return json.dumps(tasks)
-
-    @mcp.tool()
-    async def get_task(task_id: str, ctx: Context = None) -> str:
-        """Fetch a single task by id (UUID)."""
-        async with (await get_client(ctx=ctx)) as client:
-            try:
-                task = await client.get_task(task_id)
-            except DefernoError as exc:
-                return format_error(exc)
-        return json.dumps(task)
-
     @mcp.tool()
     async def create_task(
         title: str,
@@ -153,6 +93,10 @@ def register(
     ) -> str:
         """Patch mutable fields on a task.
 
+        ``task_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before the update.
+
         ``status`` must be one of ``open``, ``in-progress``, ``in-review``,
         ``done``, ``dropped``, ``pruned``. The backend rejects completing a
         task while any of its children are still active.
@@ -197,6 +141,9 @@ def register(
         )
         async with (await get_client(ctx=ctx)) as client:
             try:
+                # Resolve any Ref input form to a UUID FIRST: the recurring-scope
+                # get_task check below and the update_task call are both UUID-only.
+                task_id = await resolve_ref(client, task_id)
                 # Check if this is a recurring task needing a scope.
                 if recurring_scope is unset:
                     deferno_fields = {"title", "description", "labels", "complete_by"}
@@ -221,10 +168,14 @@ def register(
     async def set_task_status(task_id: str, status: str, ctx: Context = None) -> str:
         """Convenience wrapper around ``update_task`` for status changes.
 
+        ``task_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL.
+
         Accepts ``open``, ``in-progress``, ``in-review``, ``done``, ``dropped``, ``pruned``.
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                task_id = await resolve_ref(client, task_id)
                 task = await client.update_task(task_id, {"status": status})
             except DefernoError as exc:
                 return format_error(exc)
@@ -239,12 +190,19 @@ def register(
     ) -> str:
         """Move a task to a different parent or reorder within its current parent.
 
-        ``new_parent_id=None`` detaches the task to root level.
-        ``position`` is the insertion index in the target's children list
-        (0 = first). Omit to append at end.
+        ``task_id`` and ``new_parent_id`` each accept any reference form — UUID,
+        sequence shorthand (``#123``, personal-org only), canonical ref
+        (``acme-123``), or app URL — and are resolved to UUIDs before the move.
+
+        ``new_parent_id=None`` detaches the task to root level (kept as-is, not
+        resolved). ``position`` is the insertion index in the target's children
+        list (0 = first). Omit to append at end.
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                task_id = await resolve_ref(client, task_id)
+                if new_parent_id is not None:
+                    new_parent_id = await resolve_ref(client, new_parent_id)
                 task = await client.move_task(task_id, new_parent_id, position)
             except DefernoError as exc:
                 return format_error(exc)
@@ -261,6 +219,9 @@ def register(
     ) -> str:
         """Decompose a task into two child tasks while preserving the parent.
 
+        ``task_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL.
+
         Returns the updated parent and both new children.
         """
         payload = {
@@ -271,6 +232,7 @@ def register(
         }
         async with (await get_client(ctx=ctx)) as client:
             try:
+                task_id = await resolve_ref(client, task_id)
                 result = await client.split_task(task_id, payload)
             except DefernoError as exc:
                 return format_error(exc)
@@ -289,6 +251,9 @@ def register(
     ) -> str:
         """Insert a new next-step task directly after ``task_id`` in the sequence.
 
+        ``task_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL.
+
         Preserves any existing downstream chain. Returns the original task
         and the newly created next task.
         """
@@ -304,6 +269,7 @@ def register(
         )
         async with (await get_client(ctx=ctx)) as client:
             try:
+                task_id = await resolve_ref(client, task_id)
                 result = await client.fold_task(task_id, payload)
             except DefernoError as exc:
                 return format_error(exc)
@@ -313,40 +279,17 @@ def register(
     async def merge_task(task_id: str, ctx: Context = None) -> str:
         """Roll the active children of a task back into the parent.
 
+        ``task_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL.
+
         Child content is appended to the parent description; the children are
         marked as ``pruned`` but remain recoverable. Pass the id of any
         child whose parent should receive the merge.
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                task_id = await resolve_ref(client, task_id)
                 result = await client.merge_task(task_id)
-            except DefernoError as exc:
-                return format_error(exc)
-        return json.dumps(result)
-
-    @mcp.tool()
-    async def batch(
-        operations: list[dict[str, Any]],
-        ctx: Context = None,
-    ) -> str:
-        """Execute multiple task operations atomically in a single call.
-
-        ``operations`` is a list of operation objects. Each must have an
-        ``op`` field (``"update"`` or ``"move"``) and a ``task_id``.
-
-        Update operations accept the same fields as ``update_task``
-        (``title``, ``description``, ``status``, ``labels``, etc.) at the
-        top level alongside ``op`` and ``task_id``.
-
-        Move operations accept ``new_parent_id`` (UUID or null for root)
-        and an optional ``position`` (insertion index).
-
-        All operations succeed or none do (all-or-nothing).  On success
-        returns ``{"tasks": [...]}``, the list of all modified tasks.
-        """
-        async with (await get_client(ctx=ctx)) as client:
-            try:
-                result = await client.batch(operations)
             except DefernoError as exc:
                 return format_error(exc)
         return json.dumps(result)
@@ -378,9 +321,15 @@ def register(
 
     @mcp.tool()
     async def delete_task(task_id: str, ctx: Context = None) -> str:
-        """Hard-delete a task by id (UUID). Returns no body."""
+        """Hard-delete a task by id.
+
+        ``task_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL.
+        The returned ``task_id`` is the resolved UUID the deletion ran against.
+        """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                task_id = await resolve_ref(client, task_id)
                 await client.delete_task(task_id)
             except DefernoError as exc:
                 return format_error(exc)
@@ -449,11 +398,20 @@ def register(
         operations: list[dict[str, Any]],
         ctx: Context = None,
     ) -> str:
-        """Apply a batch of task operations transactionally.
+        """Execute multiple task operations atomically in a single call.
 
-        ``operations`` is a list of operation envelopes — see backend
-        ``/tasks/batch`` for the full schema. The whole batch succeeds
-        or fails as one unit.
+        ``operations`` is a list of operation objects. Each must have an
+        ``op`` field (``"update"`` or ``"move"``) and a ``task_id``.
+
+        Update operations accept the same fields as ``update_task``
+        (``title``, ``description``, ``status``, ``labels``, etc.) at the
+        top level alongside ``op`` and ``task_id``.
+
+        Move operations accept ``new_parent_id`` (UUID or null for root)
+        and an optional ``position`` (insertion index).
+
+        All operations succeed or none do (all-or-nothing).  On success
+        returns ``{"tasks": [...]}``, the list of all modified tasks.
         """
         async with (await get_client(ctx=ctx)) as client:
             try:

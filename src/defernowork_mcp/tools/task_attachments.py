@@ -14,6 +14,7 @@ from typing import Awaitable, Callable
 from mcp.server.fastmcp import Context, FastMCP
 
 from ..client import DefernoClient, DefernoError
+from ..refs import resolve_ref
 
 
 def register(
@@ -29,6 +30,10 @@ def register(
     ) -> str:
         """Batch-presign S3 PUT URLs for files to attach to a task.
 
+        ``task_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before presigning.
+
         ``files`` is a list of ``{filename, content_type, size_bytes}``
         records (the wire keys match the backend ``PresignRequest`` struct
         — no serde renames). The server enforces a 25 MB per-file cap and
@@ -38,6 +43,7 @@ def register(
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                task_id = await resolve_ref(client, task_id)
                 resp = await client.presign_task_attachments(task_id, files)
             except DefernoError as exc:
                 return format_error(exc)
@@ -52,6 +58,10 @@ def register(
     ) -> str:
         """Commit presigned intents and/or url-provider entries to a task.
 
+        ``task_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before the commit.
+
         ``intents`` is a list of attachment_ids returned by a prior
         presign call. ``urls`` is a list of ``{url, filename?}`` records
         for the url-provider (no upload). At least one must be non-empty.
@@ -59,6 +69,7 @@ def register(
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                task_id = await resolve_ref(client, task_id)
                 resp = await client.commit_task_attachments(task_id, intents, urls)
             except DefernoError as exc:
                 return format_error(exc)
@@ -69,9 +80,14 @@ def register(
         """List a task's attachments. Returns the AttachmentView wire shape:
         ``{id, provider, filename, mime, size, created_at, created_by, url}``.
         For ``provider=s3`` records, ``url`` is a freshly-signed GET URL.
+
+        ``task_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before the lookup.
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                task_id = await resolve_ref(client, task_id)
                 resp = await client.list_task_attachments(task_id)
             except DefernoError as exc:
                 return format_error(exc)
@@ -83,9 +99,16 @@ def register(
         att_id: str,
         ctx: Context = None,
     ) -> str:
-        """Delete a single attachment from a task."""
+        """Delete a single attachment from a task.
+
+        ``task_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before the delete. ``att_id`` is an
+        attachment id (not an item reference) and is passed through unresolved.
+        """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                task_id = await resolve_ref(client, task_id)
                 await client.delete_task_attachment(task_id, att_id)
             except DefernoError as exc:
                 return format_error(exc)

@@ -15,8 +15,9 @@
       ]
     }
   ],
-  "client_method": null,
+  "client_method": "list_items",
   "client_args_from_example": [],
   "mcp_tool": null,
-  "mcp_tool_args_from_example": []
+  "mcp_tool_args_from_example": [],
+  "notes": "mcp_tool intentionally null: the list_items tool projects rows with COMPACT_ITEM_CORE_FIELDS, which (by design) drops the raw `id`, so the tool's output cannot satisfy this fixture's _required:[kind,id,title] shape. The client layer returns rows verbatim (id preserved) and IS wired here. Tool-layer behaviour is covered by tests/test_list_items.py."
 }
