@@ -20,6 +20,6 @@
   ],
   "client_method": "search_tasks",
   "client_args_from_example": ["query"],
-  "mcp_tool": "search_tasks",
+  "mcp_tool": "search_items",
   "mcp_tool_args_from_example": ["query"]
 }

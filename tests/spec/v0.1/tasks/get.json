@@ -34,6 +34,7 @@
   ],
   "client_method": "get_task",
   "client_args_from_example": [],
-  "mcp_tool": "get_task",
-  "mcp_tool_args_from_example": []
+  "mcp_tool": null,
+  "mcp_tool_args_from_example": [],
+  "notes": "mcp_tool is null: the tasks-only read TOOL (get_task) was removed in #10 in favor of the kind-neutral get_item (GET /items). The GET /tasks/{id} endpoint and the client.get_task method remain (the latter still backs update_task's recurring-scope check), so client-layer contract coverage persists; there is no item TOOL that maps to GET /tasks/{id}."
 }

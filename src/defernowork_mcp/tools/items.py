@@ -152,7 +152,7 @@ def register(
     ) -> str:
         """Full-text search over items, returning a Compact projection.
 
-        The compact, kind-neutral replacement for ``search_tasks``. Returns a
+        The compact, kind-neutral full-text search over items. Returns a
         **Compact** projection by default -- the same small fixed field set per
         row as ``list_items`` (``ref``, ``kind``, ``title``, ``status``,
         ``complete_by``, ``parent_id``, ``labels``) -- so the heavy body

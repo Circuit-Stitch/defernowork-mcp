@@ -33,7 +33,7 @@ def register(
         query_string: str,
         ctx: Context = None,
     ) -> str:
-        """Save a search. ``query_string`` is the same syntax as ``search_tasks``."""
+        """Save a search. ``query_string`` is the same syntax as ``search_items``."""
         async with (await get_client(ctx=ctx)) as client:
             try:
                 search = await client.create_saved_search(name, query_string)

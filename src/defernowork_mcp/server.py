@@ -263,8 +263,9 @@ def create_server(http_transport: bool = False) -> FastMCP:
         "Authentication is handled via OAuth 2.0 — if you receive a 401, "
         "follow the standard OAuth discovery flow (RFC 9728 PRM → RFC 8414 "
         "AS metadata → Authorization Code + PKCE). "
-        "Use `whoami` to confirm authentication, `list_tasks` or the "
-        "`defernowork://tasks` resource to index the user's current tasks, and "
+        "Use `whoami` to confirm authentication, `list_items` to index the "
+        "user's current items, `search_items` to find items by text, and "
+        "`get_item` for full detail on one item. Use "
         "`create_task` / `update_task` for normal CRUD. Use "
         "`split_task` to decompose a task into two subtasks, `fold_task` to insert "
         "a next-step task in a sequence, and `merge_task` to roll active children "
@@ -273,7 +274,7 @@ def create_server(http_transport: bool = False) -> FastMCP:
         "recurring tasks + carried-forward items), `add_to_plan` / "
         "`remove_from_plan` to manage it. When the user asks about their "
         "current tasks or what they should work on today, prefer "
-        "`get_daily_plan` over `list_tasks`."
+        "`get_daily_plan` over `list_items`."
     )
 
     mcp = FastMCP(
