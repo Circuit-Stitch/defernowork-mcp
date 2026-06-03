@@ -256,6 +256,10 @@ def register(
     ) -> str:
         """Convert an item to a different kind (Task / Chore / Habit / Event).
 
+        ``item_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before the conversion.
+
         ``to`` is one of ``"task"``, ``"chore"``, ``"habit"``, ``"event"`` --
         this is the backend wire field name (``ConvertItemPayload.to``).
         ``complete_by`` (RFC3339) is required when ``to`` is Event/Chore/Habit;
@@ -266,6 +270,7 @@ def register(
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                item_id = await resolve_ref(client, item_id)
                 resp = await client.convert_item(
                     item_id,
                     to,
@@ -279,9 +284,15 @@ def register(
 
     @mcp.tool()
     async def get_item_history(item_id: str, ctx: Context = None) -> str:
-        """Return the change-history list for any item kind (Task/Habit/Chore/Event)."""
+        """Return the change-history list for any item kind (Task/Habit/Chore/Event).
+
+        ``item_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before the history lookup.
+        """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                item_id = await resolve_ref(client, item_id)
                 resp = await client.get_item_history(item_id)
             except DefernoError as exc:
                 return format_error(exc)
@@ -295,6 +306,10 @@ def register(
     ) -> str:
         """Pin or unpin a sidebar item (Task/Habit/Chore/Event).
 
+        ``item_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before the pin toggle.
+
         Backend body is ``{pinned: bool}`` -- the gap-closure plan's optional
         ``label`` argument is not part of this endpoint (custom pin labels
         live on ``PATCH /tasks/pinned/{id}``). Returns ``{"ok": true}`` on
@@ -302,6 +317,7 @@ def register(
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                item_id = await resolve_ref(client, item_id)
                 await client.set_item_pinned(item_id, pinned)
             except DefernoError as exc:
                 return format_error(exc)
