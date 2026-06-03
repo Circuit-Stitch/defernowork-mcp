@@ -114,6 +114,59 @@ def register(
         return json.dumps([project(row, COMPACT_ITEM_CORE_FIELDS) for row in rows])
 
     @mcp.tool()
+    async def search_items(
+        query: str,
+        status: str | None = None,
+        label: str | None = None,
+        from_date: str | None = None,
+        to_date: str | None = None,
+        parent_id: str | None = None,
+        full: bool = False,
+        ctx: Context = None,
+    ) -> str:
+        """Full-text search over items, returning a Compact projection.
+
+        The compact, kind-neutral replacement for ``search_tasks``. Returns a
+        **Compact** projection by default -- the same small fixed field set per
+        row as ``list_items`` (``ref``, ``kind``, ``title``, ``status``,
+        ``complete_by``, ``parent_id``, ``labels``) -- so the heavy body
+        (``description``) and the raw ``id`` are dropped. Pass ``full=true`` for
+        the rows verbatim.
+
+        Scope: **full-text search currently covers Tasks only.** This tool is
+        backed by the Tasks search path (``GET /tasks/search``) because the
+        backend has no kind-neutral ``/items/search`` endpoint today; a
+        kind-neutral full-text search is a known **backend follow-on** (to be
+        filed in the Deferno backend repo, out of scope for the MCP). Non-Task
+        kinds (Habits / Chores / Events) are therefore not reached by ``query``
+        yet -- use ``list_items`` to enumerate those.
+
+        Args:
+            query: Search query (min 2 characters). Searches title and description.
+            status: Filter by status (open, in-progress, in-review, done, dropped).
+            label: Filter by label tag.
+            from_date: Filter items due on or after this ISO 8601 date.
+            to_date: Filter items due on or before this ISO 8601 date.
+            parent_id: Scope search to children of this item (UUID).
+            full: When ``true``, return every field on each row (no projection).
+        """
+        async with (await get_client(ctx=ctx)) as client:
+            try:
+                rows = await client.search_tasks(
+                    query,
+                    status=status,
+                    label=label,
+                    from_date=from_date,
+                    to_date=to_date,
+                    parent_id=parent_id,
+                )
+            except DefernoError as exc:
+                return format_error(exc)
+        if full:
+            return json.dumps(rows)
+        return json.dumps([project(row, COMPACT_ITEM_CORE_FIELDS) for row in rows])
+
+    @mcp.tool()
     async def get_items_calendar(
         start: str,
         end: str,
