@@ -8,6 +8,7 @@ from typing import Any, Awaitable, Callable
 from mcp.server.fastmcp import Context, FastMCP
 
 from ..client import DefernoClient, DefernoError
+from ..refs import resolve_ref
 
 
 def register(
@@ -73,6 +74,10 @@ def register(
     ) -> str:
         """Patch mutable fields on a chore. Omitted fields stay untouched.
 
+        ``chore_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before the patch.
+
         ``complete_by`` cannot be cleared on chores. Pass new value to shift
         the schedule. Updating ``recurrence`` rotates the chore's series ID
         so prior occurrences remain attached to the old definition.
@@ -96,6 +101,7 @@ def register(
         })
         async with (await get_client(ctx=ctx)) as client:
             try:
+                chore_id = await resolve_ref(client, chore_id)
                 chore = await client.update_chore(chore_id, payload)
             except DefernoError as exc:
                 return format_error(exc)
@@ -103,9 +109,15 @@ def register(
 
     @mcp.tool()
     async def delete_chore(chore_id: str, ctx: Context = None) -> str:
-        """Archive (soft-delete) a chore."""
+        """Archive (soft-delete) a chore.
+
+        ``chore_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before the delete.
+        """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                chore_id = await resolve_ref(client, chore_id)
                 await client.delete_chore(chore_id)
             except DefernoError as exc:
                 return format_error(exc)
@@ -120,12 +132,17 @@ def register(
     ) -> str:
         """List derived occurrences for a chore in the given date window.
 
+        ``chore_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before the lookup.
+
         Each occurrence has a status: ``Scheduled``, ``Missed``,
         ``InProgress``, ``Skipped``, ``DoneOnTime``, or ``DoneLate``.
         Dates use YYYY-MM-DD; range is inclusive on both ends.
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                chore_id = await resolve_ref(client, chore_id)
                 occurrences = await client.list_chore_occurrences(
                     chore_id, from_date=from_date, to_date=to_date
                 )
@@ -142,6 +159,10 @@ def register(
     ) -> str:
         """Set the status of a single chore occurrence.
 
+        ``chore_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before the status change.
+
         ``status`` is the action to apply: one of ``"in_progress"``,
         ``"done"``, or ``"dropped"`` (alias: ``"skipped"`` for legacy
         callers). ``date`` is YYYY-MM-DD.
@@ -151,6 +172,7 @@ def register(
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                chore_id = await resolve_ref(client, chore_id)
                 occurrence = await client.set_chore_occurrence_status(
                     chore_id, date, status
                 )
@@ -166,6 +188,10 @@ def register(
     ) -> str:
         """Apply ``status`` to the earliest unresolved occurrence of a chore.
 
+        ``chore_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before marking the occurrence.
+
         Useful for the common "I just did the dishes" case where the user
         doesn't want to look up which date is overdue. 404 if no
         unresolved occurrence exists.
@@ -179,6 +205,7 @@ def register(
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                chore_id = await resolve_ref(client, chore_id)
                 occurrence = await client.mark_next_chore_done(chore_id, status=status)
             except DefernoError as exc:
                 return format_error(exc)
@@ -193,12 +220,18 @@ def register(
     ) -> str:
         """Move a single chore occurrence to ``new_date`` without touching the cadence.
 
+        ``chore_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before the reschedule. ``date`` and
+        ``new_date`` are YYYY-MM-DD occurrence dates, not item references.
+
         NOTE (v0.2): the backend returns 501 today for chores (legacy
         storage); the tool is exposed for forward compatibility. Once
         the chore storage is migrated, this becomes the SCOPE-010 path.
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                chore_id = await resolve_ref(client, chore_id)
                 occ = await client.reschedule_chore_occurrence(chore_id, date, new_date)
             except DefernoError as exc:
                 return format_error(exc)

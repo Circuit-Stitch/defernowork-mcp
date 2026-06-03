@@ -8,6 +8,7 @@ from typing import Any, Awaitable, Callable
 from mcp.server.fastmcp import Context, FastMCP
 
 from ..client import DefernoClient, DefernoError
+from ..refs import resolve_ref
 
 
 def register(
@@ -66,6 +67,10 @@ def register(
     ) -> str:
         """Patch mutable fields on a habit. Omitted fields stay untouched.
 
+        ``habit_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before the patch.
+
         v0.2 optional fields:
         - ``deadline_time_of_day``: ``"HH:MM"`` time-of-day deadline (user's TZ).
         - ``subtask_template``: list of subtask shapes materialized per occurrence.
@@ -79,6 +84,7 @@ def register(
         })
         async with (await get_client(ctx=ctx)) as client:
             try:
+                habit_id = await resolve_ref(client, habit_id)
                 habit = await client.update_habit(habit_id, payload)
             except DefernoError as exc:
                 return format_error(exc)
@@ -86,9 +92,15 @@ def register(
 
     @mcp.tool()
     async def delete_habit(habit_id: str, ctx: Context = None) -> str:
-        """Archive (soft-delete) a habit."""
+        """Archive (soft-delete) a habit.
+
+        ``habit_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before the delete.
+        """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                habit_id = await resolve_ref(client, habit_id)
                 await client.delete_habit(habit_id)
             except DefernoError as exc:
                 return format_error(exc)
@@ -103,10 +115,15 @@ def register(
     ) -> str:
         """List occurrences for a habit in a date window.
 
+        ``habit_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before the lookup.
+
         Dates use YYYY-MM-DD; range is inclusive on both ends.
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                habit_id = await resolve_ref(client, habit_id)
                 occurrences = await client.list_habit_occurrences(
                     habit_id, from_date=from_date, to_date=to_date
                 )
@@ -123,10 +140,15 @@ def register(
     ) -> str:
         """Mark a habit occurrence as done or not-done.
 
+        ``habit_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before marking the occurrence.
+
         ``date`` is YYYY-MM-DD; defaults to today on the server side.
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                habit_id = await resolve_ref(client, habit_id)
                 occurrence = await client.mark_habit_occurrence(
                     habit_id, done, date=date
                 )
@@ -140,9 +162,15 @@ def register(
         date: str,
         ctx: Context = None,
     ) -> str:
-        """Clear an explicitly-marked habit occurrence at ``date`` (YYYY-MM-DD)."""
+        """Clear an explicitly-marked habit occurrence at ``date`` (YYYY-MM-DD).
+
+        ``habit_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before clearing the occurrence.
+        """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                habit_id = await resolve_ref(client, habit_id)
                 await client.clear_habit_occurrence(habit_id, date)
             except DefernoError as exc:
                 return format_error(exc)
@@ -157,11 +185,17 @@ def register(
     ) -> str:
         """Move a single habit occurrence to ``new_date`` without touching the cadence.
 
+        ``habit_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before the reschedule. ``date`` and
+        ``new_date`` are YYYY-MM-DD occurrence dates, not item references.
+
         NOTE (v0.2): the backend returns 501 today for habits (legacy
         storage); the tool is exposed for forward compatibility.
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                habit_id = await resolve_ref(client, habit_id)
                 occ = await client.reschedule_habit_occurrence(habit_id, date, new_date)
             except DefernoError as exc:
                 return format_error(exc)
