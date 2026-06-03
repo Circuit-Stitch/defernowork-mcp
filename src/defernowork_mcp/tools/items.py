@@ -8,7 +8,12 @@ from typing import Awaitable, Callable
 from mcp.server.fastmcp import Context, FastMCP
 
 from ..client import DefernoClient, DefernoError
-from ..refs import COMPACT_ITEM_FIELDS, project, resolve_ref
+from ..refs import (
+    COMPACT_ITEM_CORE_FIELDS,
+    COMPACT_ITEM_FIELDS,
+    project,
+    resolve_ref,
+)
 
 
 def register(
@@ -50,6 +55,63 @@ def register(
         if full:
             return json.dumps(record)
         return json.dumps(project(record, COMPACT_ITEM_FIELDS))
+
+    @mcp.tool()
+    async def list_items(
+        kind: str | None = None,
+        status: str | None = None,
+        from_date: str | None = None,
+        to_date: str | None = None,
+        limit: int | None = None,
+        full: bool = False,
+        window: str | None = None,
+        ctx: Context = None,
+    ) -> str:
+        """List items of any kind (Task / Habit / Chore / Event), windowed.
+
+        The canonical, bounded list view. Returns a **Compact** projection by
+        default -- a small fixed field set per row (``ref``, ``kind``, ``title``,
+        ``status``, ``complete_by``, ``parent_id``, ``labels``) with the heavy
+        body (``description``) and raw ``id`` dropped -- so a query returns a
+        trimmed set, not the entire working set in full detail.
+
+        Filters (composed into an OData ``$filter`` with ``and``):
+
+        - ``kind`` -- one of ``"task"``, ``"habit"``, ``"chore"``, ``"event"``.
+        - ``status`` -- the item status (e.g. ``"open"``, ``"done"``).
+        - ``from_date`` / ``to_date`` -- ``YYYY-MM-DD``; filter on ``complete_by``
+          widened to RFC3339 day boundaries (start-of-day for ``from_date``,
+          end-of-day for ``to_date``).
+
+        An unknown / unfilterable field returns a backend 400, surfaced clearly
+        (not swallowed).
+
+        - ``limit`` -- maps to OData ``$top``. The backend caps ``$top`` at 500
+          by REJECTING larger values with a 400 (it does NOT clamp); the number
+          is passed through verbatim.
+        - ``full=true`` -- return every field on each row (drops the projection).
+        - ``window="all"`` -- opt out of the default done-visibility window for
+          full history (the default window applies only to the unfiltered call).
+
+        Regardless of projection, the backend always injects ``ref``,
+        ``org_slug``, ``type`` and ``sequence`` into every row.
+        """
+        async with (await get_client(ctx=ctx)) as client:
+            try:
+                rows = await client.list_items(
+                    kind=kind,
+                    status=status,
+                    from_date=from_date,
+                    to_date=to_date,
+                    limit=limit,
+                    full=full,
+                    window=window,
+                )
+            except DefernoError as exc:
+                return format_error(exc)
+        if full:
+            return json.dumps(rows)
+        return json.dumps([project(row, COMPACT_ITEM_CORE_FIELDS) for row in rows])
 
     @mcp.tool()
     async def get_items_calendar(

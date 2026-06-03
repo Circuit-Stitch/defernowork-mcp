@@ -8,6 +8,8 @@ from urllib.parse import quote, urlencode
 
 import httpx
 
+from .refs import COMPACT_ITEM_CORE_FIELDS
+
 # During the v0.1 -> v0.2 backend cutover window the MCP server accepts
 # either envelope so it doesn't go dark for the hours/days the backend
 # takes to flip API_VERSION. Once the backend has settled on "0.2" and a
@@ -664,6 +666,70 @@ class DefernoClient:
         return await self._request(
             "GET", f"/items/by-ref/{quote(canonical, safe='')}"
         )
+
+    async def list_items(
+        self,
+        *,
+        kind: str | None = None,
+        status: str | None = None,
+        from_date: str | None = None,
+        to_date: str | None = None,
+        limit: int | None = None,
+        full: bool = False,
+        window: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """List items across all kinds via the canonical ``GET /items`` window.
+
+        Builds the OData query the backend's ``list_items`` handler parses:
+
+        - ``$select`` — the compact LIST-row field set (``COMPACT_ITEM_CORE_FIELDS``),
+          omitted when ``full`` is set. This is the "shrink at the wire" lever
+          (ADR-0002): the backend always re-injects ``id``/``kind`` and the
+          envelope fields (``ref``/``org_slug``/``type``/``sequence``) regardless
+          of ``$select``, so a narrow select never loses identity.
+        - ``$top`` — ``limit`` passed through VERBATIM. The backend caps ``$top``
+          at 500 by REJECTING values above it with a 400 (``$top exceeds max of
+          500``), NOT by silently clamping; we don't rewrite the caller's number.
+        - ``$filter`` — composed with ``and`` from the supplied facets. Field
+          names match the backend allowlist: ``kind`` (Task/Habit/Chore/Event,
+          NOT ``type``), ``status``, and the date field ``complete_by``.
+          ``complete_by`` is a *DateTime* field, and the OData evaluator has no
+          Date<->DateTime coercion, so ``from_date``/``to_date`` are widened to
+          RFC3339 day boundaries (``ge {d}T00:00:00Z`` / ``le {d}T23:59:59.999Z``)
+          — a bare ``YYYY-MM-DD`` would tokenize to a Date literal and match zero
+          DateTime rows. This mirrors the webui's ``buildVisibilityFilter``.
+        - ``window`` — ``window=all`` opts out of the backend's default
+          done-visibility window (full history). The backend only applies that
+          default window when there is NO ``$filter`` anyway.
+
+        Returns the backend rows verbatim (the MCP tool layer applies the
+        defence-in-depth Compact projection on top).
+        """
+        params: list[str] = []
+
+        if not full:
+            params.append("$select=" + quote(",".join(COMPACT_ITEM_CORE_FIELDS), safe=","))
+
+        clauses: list[str] = []
+        if kind is not None:
+            clauses.append(f"kind eq '{kind}'")
+        if status is not None:
+            clauses.append(f"status eq '{status}'")
+        if from_date is not None:
+            clauses.append(f"complete_by ge {from_date}T00:00:00Z")
+        if to_date is not None:
+            clauses.append(f"complete_by le {to_date}T23:59:59.999Z")
+        if clauses:
+            params.append("$filter=" + quote(" and ".join(clauses), safe=""))
+
+        if limit is not None:
+            params.append(f"$top={limit}")
+
+        if window is not None:
+            params.append(f"window={quote(window, safe='')}")
+
+        query = "?" + "&".join(params) if params else ""
+        return await self._request("GET", f"/items{query}")
 
     async def get_items_calendar(
         self, start: str, end: str, tz: str | None = None
