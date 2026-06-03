@@ -49,6 +49,7 @@ from .tools import (
     register_events,
     register_feedback,
     register_habits,
+    register_item_activity,
     register_items,
     register_pinned,
     register_saved_searches,
@@ -274,7 +275,14 @@ def create_server(http_transport: bool = False) -> FastMCP:
         "recurring tasks + carried-forward items), `add_to_plan` / "
         "`remove_from_plan` to manage it. When the user asks about their "
         "current tasks or what they should work on today, prefer "
-        "`get_daily_plan` over `list_items`."
+        "`get_daily_plan` over `list_items`. "
+        "To comment on or attach files to a Task, Chore, or Habit, use the "
+        "kind-neutral item-level tools — `post_item_comment` / "
+        "`list_item_comments` and `presign_item_attachments` / "
+        "`commit_item_attachments` / `list_item_attachments` / "
+        "`delete_item_attachment` / `set_item_attachment_caption` — which take "
+        "any item reference. Events are the exception: comment on / attach to a "
+        "specific Event occurrence with the `*_event_occurrence_*` tools."
     )
 
     mcp = FastMCP(
@@ -296,6 +304,7 @@ def create_server(http_transport: bool = False) -> FastMCP:
     register_saved_searches(mcp, _get_client_async, _format_error, _compact, _UNSET)
     register_feedback(mcp, _get_client_async, _format_error, _compact, _UNSET)
     register_items(mcp, _get_client_async, _format_error)
+    register_item_activity(mcp, _get_client_async, _format_error)
     register_pinned(mcp, _get_client_async, _format_error)
     register_daily_plan(mcp, _get_client_async, _format_error)
 

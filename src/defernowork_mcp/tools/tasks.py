@@ -37,7 +37,10 @@ def register(
         """Create a new task.
 
         ``complete_by`` must be an ISO-8601 UTC timestamp.
-        ``parent_id`` attaches the new task as a child of an existing task.
+        ``parent_id`` attaches the new task as a child of an existing item and
+        accepts any reference form — UUID, sequence shorthand (``#123``,
+        personal-org only), canonical ref (``acme-123``), or app URL — resolved
+        to a UUID before the create. Omit it (or pass ``null``) to create at root.
         ``productive`` and ``desire`` are floats in [0, 1] representing how
         productive this task feels and how much the user wants to do it.
         ``recurrence`` sets a repeat schedule. Use ``{"type": "daily"}``,
@@ -69,6 +72,8 @@ def register(
         )
         async with (await get_client(ctx=ctx)) as client:
             try:
+                if parent_id is not unset and parent_id is not None:
+                    payload["parent_id"] = await resolve_ref(client, parent_id)
                 task = await client.create_task(payload)
             except DefernoError as exc:
                 return format_error(exc)
@@ -407,14 +412,27 @@ def register(
         (``title``, ``description``, ``status``, ``labels``, etc.) at the
         top level alongside ``op`` and ``task_id``.
 
-        Move operations accept ``new_parent_id`` (UUID or null for root)
-        and an optional ``position`` (insertion index).
+        Move operations accept ``new_parent_id`` (null for root) and an
+        optional ``position`` (insertion index).
+
+        Both ``task_id`` and ``new_parent_id`` in each operation accept any
+        reference form — UUID, sequence shorthand (``#123``, personal-org
+        only), canonical ref (``acme-123``), or app URL — and are resolved to
+        UUIDs before the batch. A ``new_parent_id`` of ``null`` (detach to root)
+        is left as-is.
 
         All operations succeed or none do (all-or-nothing).  On success
         returns ``{"tasks": [...]}``, the list of all modified tasks.
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                for op in operations:
+                    if op.get("task_id") is not None:
+                        op["task_id"] = await resolve_ref(client, op["task_id"])
+                    if op.get("new_parent_id") is not None:
+                        op["new_parent_id"] = await resolve_ref(
+                            client, op["new_parent_id"]
+                        )
                 result = await client.batch(operations)
             except DefernoError as exc:
                 return format_error(exc)

@@ -173,11 +173,16 @@ def register(
             label: Filter by label tag.
             from_date: Filter items due on or after this ISO 8601 date.
             to_date: Filter items due on or before this ISO 8601 date.
-            parent_id: Scope search to children of this item (UUID).
+            parent_id: Scope search to children of this item. Accepts any
+                reference form — UUID, sequence shorthand (``#123``,
+                personal-org only), canonical ref (``acme-123``), or app URL —
+                resolved to a UUID before the search.
             full: When ``true``, return every field on each row (no projection).
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                if parent_id is not None:
+                    parent_id = await resolve_ref(client, parent_id)
                 rows = await client.search_tasks(
                     query,
                     status=status,
@@ -235,9 +240,16 @@ def register(
         date: str | None = None,
         ctx: Context = None,
     ) -> str:
-        """Add an item (any kind) to the daily plan."""
+        """Add an item (any kind) to the daily plan.
+
+        ``task_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before the call, so a ``ref`` from
+        ``list_items`` works directly.
+        """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                task_id = await resolve_ref(client, task_id)
                 result = await client.add_to_items_plan(task_id, date=date)
             except DefernoError as exc:
                 return format_error(exc)
@@ -249,9 +261,15 @@ def register(
         date: str | None = None,
         ctx: Context = None,
     ) -> str:
-        """Remove an item from the daily plan."""
+        """Remove an item from the daily plan.
+
+        ``task_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before the call.
+        """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                task_id = await resolve_ref(client, task_id)
                 result = await client.remove_from_items_plan(task_id, date=date)
             except DefernoError as exc:
                 return format_error(exc)
@@ -263,9 +281,15 @@ def register(
         date: str | None = None,
         ctx: Context = None,
     ) -> str:
-        """Replace the daily plan ordering with the given full list of IDs."""
+        """Replace the daily plan ordering with the given full list of IDs.
+
+        Each element of ``task_ids`` accepts any reference form — UUID, sequence
+        shorthand (``#123``, personal-org only), canonical ref (``acme-123``),
+        or app URL — and is resolved to a UUID before the call (order preserved).
+        """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                task_ids = [await resolve_ref(client, t) for t in task_ids]
                 result = await client.reorder_items_plan(task_ids, date=date)
             except DefernoError as exc:
                 return format_error(exc)

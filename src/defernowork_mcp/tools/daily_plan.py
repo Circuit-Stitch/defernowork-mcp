@@ -8,6 +8,7 @@ from typing import Awaitable, Callable
 from mcp.server.fastmcp import Context, FastMCP
 
 from ..client import DefernoClient, DefernoError
+from ..refs import resolve_ref
 
 
 def register(
@@ -49,10 +50,15 @@ def register(
     async def add_to_plan(task_id: str, date: str | None = None, ctx: Context = None) -> str:
         """Add a task to the daily plan.
 
-        ``task_id`` is the UUID of an existing task. ``date`` defaults to today.
+        ``task_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before the call, so a ``ref`` from
+        ``list_items`` works directly. ``date`` defaults to today. The
+        returned ``task_id`` is the resolved UUID.
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                task_id = await resolve_ref(client, task_id)
                 await client.add_to_plan(task_id, date)
             except DefernoError as exc:
                 return format_error(exc)
@@ -62,10 +68,14 @@ def register(
     async def remove_from_plan(task_id: str, date: str | None = None, ctx: Context = None) -> str:
         """Remove a task from the daily plan.
 
-        ``task_id`` is the UUID of the task to remove. ``date`` defaults to today.
+        ``task_id`` accepts any reference form — UUID, sequence shorthand
+        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
+        — and is resolved to a UUID before the call. ``date`` defaults to
+        today. The returned ``task_id`` is the resolved UUID.
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                task_id = await resolve_ref(client, task_id)
                 await client.remove_from_plan(task_id, date)
             except DefernoError as exc:
                 return format_error(exc)
@@ -75,11 +85,14 @@ def register(
     async def reorder_plan(task_ids: list[str], date: str | None = None, ctx: Context = None) -> str:
         """Replace the daily plan ordering with the given task ID list.
 
-        ``task_ids`` is the full ordered list of task UUIDs for the plan.
-        ``date`` defaults to today.
+        ``task_ids`` is the full ordered list for the plan. Each element accepts
+        any reference form — UUID, sequence shorthand (``#123``, personal-org
+        only), canonical ref (``acme-123``), or app URL — and is resolved to a
+        UUID before the call (order preserved). ``date`` defaults to today.
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                task_ids = [await resolve_ref(client, t) for t in task_ids]
                 await client.reorder_plan(task_ids, date)
             except DefernoError as exc:
                 return format_error(exc)
