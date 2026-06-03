@@ -39,6 +39,7 @@ from mcp.server.fastmcp import Context, FastMCP
 
 from .client import DefernoClient, DefernoError
 from .credentials import load_credentials
+from .refs import COMPACT_ITEM_FIELDS, project, resolve_ref
 from .tools import (
     register_auth,
     register_chores,
@@ -298,13 +299,9 @@ def create_server(http_transport: bool = False) -> FastMCP:
     register_daily_plan(mcp, _get_client_async, _format_error)
 
     # ── Resources ─────────────────────────────────────────────────
-    @mcp.resource("defernowork://tasks")
-    async def all_tasks_resource() -> str:
-        """All tasks owned by the authenticated user (JSON array)."""
-        async with (await _get_client_async()) as client:
-            tasks = await client.list_tasks()
-        return json.dumps(tasks, indent=2)
-
+    # Bounded surfaces only (ADR-0002): the unbounded all-tasks resource is
+    # gone; plan + mood-history are naturally bounded; single-item reads go
+    # through the any-ref item resource below (Compact projection).
     @mcp.resource("defernowork://tasks/plan")
     async def plan_resource() -> str:
         """Today's curated daily plan (JSON array)."""
@@ -319,12 +316,20 @@ def create_server(http_transport: bool = False) -> FastMCP:
             history = await client.mood_history()
         return json.dumps(history, indent=2)
 
-    @mcp.resource("defernowork://task/{task_id}")
-    async def task_resource(task_id: str) -> str:
-        """A single task, addressable by UUID as ``defernowork://task/<id>``."""
+    @mcp.resource("defernowork://item/{ref}")
+    async def item_resource(ref: str) -> str:
+        """A single item (Task/Habit/Chore/Event) by any Ref input form.
+
+        ``{ref}`` accepts any reference the classifier auto-routes — a UUID, a
+        Sequence shorthand (``#123``, which arrives URL-encoded as ``%23123``),
+        or a Canonical ref (``acme-123``). It is resolved transparently and the
+        item is returned in **Compact projection** (a small whitelist of fields
+        including ``description``; heavy arrays are dropped).
+        """
         async with (await _get_client_async()) as client:
-            task = await client.get_task(unquote(task_id))
-        return json.dumps(task, indent=2)
+            item_id = await resolve_ref(client, unquote(ref))
+            record = await client.get_item(item_id)
+        return json.dumps(project(record, COMPACT_ITEM_FIELDS), indent=2)
 
     return mcp
 
