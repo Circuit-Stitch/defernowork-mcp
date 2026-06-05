@@ -125,15 +125,15 @@ The easiest way is [`uvx`](https://docs.astral.sh/uv/) — it runs the package
 in an isolated environment without a manual install step:
 
 ```bash
-uvx deferno-mcp
+uvx defernowork-mcp
 ```
 
 Or install permanently:
 
 ```bash
-pip install deferno-mcp
+pip install defernowork-mcp
 # or with uv:
-uv pip install deferno-mcp
+uv pip install defernowork-mcp
 ```
 
 ## Authenticate
@@ -230,20 +230,6 @@ the server instructions tell it to:
 
 All subsequent tool calls work automatically, including across restarts.
 
-### Where to implement
-
-**Backend** (`Deferno/backend/src/main.rs` + `repository.rs`):
-- Payload/response structs alongside the existing auth types
-- `cli_init`, `cli_approve`, `cli_verify` handler functions
-- `cli/init` and `cli/verify` as public routes; `cli/approve` behind `require_auth`
-- CLI session CRUD in the repository layer (Redis key `cli_session:{id}`, TTL 10 min)
-
-**Frontend** (`Deferno/webui/`):
-- New page `src/pages/CliAuth.tsx` at route `/cli-auth?session=<id>`
-- If not logged in: redirect to login, then back to `/cli-auth`
-- If logged in: show "Approve this CLI login?" button
-- On approve: call `POST /auth/cli/approve`, display the code
-
 ## Configure
 
 Environment variables:
@@ -314,23 +300,6 @@ Deferno's Settings/Interactions page, then paste it into the config:
   }
 }
 ```
-
-
-
-
-
-
-## Running the backend
-
-The server talks to the Rust backend over HTTP. Start it first:
-
-```bash
-cd backend
-cargo run
-```
-
-It listens on `:3000` and connects to Redis via `REDIS_URL`
-(default `redis://127.0.0.1:6379/`).
 
 ## Development
 

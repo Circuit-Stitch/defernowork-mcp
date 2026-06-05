@@ -15,9 +15,14 @@ on the Deferno side.
 **Ref input form**:
 One of the identifier shapes the MCP accepts when an agent names a single item.
 The recognised forms are **UUID**, **Sequence shorthand**, **Canonical ref**
-(Deferno's `{org_slug}-{sequence}`), and **App URL**. The MCP classifies the
-shape of an agent-supplied string and routes it to the matching Deferno lookup;
-the agent never has to know which form it holds.
+(Deferno's `{org_slug}-{sequence}`), **App URL**, and the unambiguous GitHub
+[[Alias]] form (`owner/repo#N`). The MCP classifies the shape of an
+agent-supplied string and routes it to the matching Deferno lookup; the agent
+never has to know which form it holds. The GitHub Alias form auto-routes to the
+by-alias lookup today, but aliases only *resolve* server-side once Deferno's
+**External tasks** feature ships; ambiguous alias strings (e.g. `ABC-223`, which
+collides with a Canonical ref) are deliberately **not** auto-routed and require
+the explicit `as_alias` escape-hatch — see "Flagged ambiguities" below.
 _Avoid_: id type, identifier kind (too generic).
 
 **Transparent resolution**:
