@@ -793,6 +793,72 @@ class DefernoClient:
             body["date"] = date
         return await self._request("POST", "/items/plan/reorder", json_body=body)
 
+    # ── item-level activity: kind-neutral comments + attachments (#12) ──────
+    #
+    # These hit the item-level surface ``/items/{id}/...`` so a Task, Chore, or
+    # Habit can be commented on / attached to by id without the caller knowing
+    # its kind. ``/items/{id}/comments`` exists today (Task-only until Deferno
+    # backend #266 extends it to Chore/Habit); the ``/items/{id}/attachments/*``
+    # routes land with Deferno backend #215 (shapes mirror /tasks/{id}/...).
+    # Events are rejected by the backend with a 400 — use the per-occurrence
+    # comment/attachment methods for Events.
+
+    async def post_item_comment(
+        self, item_id: str, body: str, is_private: bool = False
+    ) -> dict[str, Any]:
+        return await self._request(
+            "POST",
+            f"/items/{item_id}/comments",
+            json_body={"body": body, "is_private": is_private},
+        )
+
+    async def list_item_comments(self, item_id: str) -> list[dict[str, Any]]:
+        return await self._request("GET", f"/items/{item_id}/comments")
+
+    async def presign_item_attachments(
+        self, item_id: str, files: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        return await self._request(
+            "POST",
+            f"/items/{item_id}/attachments/presign",
+            json_body={"files": files},
+        )
+
+    async def commit_item_attachments(
+        self,
+        item_id: str,
+        intents: list[str] | None = None,
+        urls: list[dict[str, Any]] | None = None,
+    ) -> list[dict[str, Any]]:
+        body: dict[str, Any] = {}
+        if intents:
+            body["intents"] = intents
+        if urls:
+            body["urls"] = urls
+        return await self._request(
+            "POST", f"/items/{item_id}/attachments", json_body=body
+        )
+
+    async def list_item_attachments(self, item_id: str) -> list[dict[str, Any]]:
+        return await self._request("GET", f"/items/{item_id}/attachments")
+
+    async def delete_item_attachment(self, item_id: str, attachment_id: str) -> None:
+        await self._request(
+            "DELETE", f"/items/{item_id}/attachments/{attachment_id}"
+        )
+
+    async def set_item_attachment_caption(
+        self, item_id: str, attachment_id: str, caption: str | None
+    ) -> dict[str, Any]:
+        # PATCH at the parent path (ADR 2026-05-21-attachment-caption): a string
+        # sets/changes the caption, ``null`` clears it. The body always carries
+        # ``caption`` (including JSON null) so clearing is unambiguous.
+        return await self._request(
+            "PATCH",
+            f"/items/{item_id}/attachments/{attachment_id}",
+            json_body={"caption": caption},
+        )
+
     async def convert_item(
         self, item_id: str, to: str, **kwargs: Any
     ) -> dict[str, Any]:

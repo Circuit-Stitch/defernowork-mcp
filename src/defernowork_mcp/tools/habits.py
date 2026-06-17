@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Awaitable, Callable
+from typing import Annotated, Any, Awaitable, Callable
 
 from mcp.server.fastmcp import Context, FastMCP
+from pydantic import Field
 
 from ..client import DefernoClient, DefernoError
+from ..constraints import RECURRENCE_END_DESC
 from ..refs import resolve_ref
 
 
@@ -23,7 +25,9 @@ def register(
         title: str,
         description: str | None = unset,
         complete_by: str | None = unset,
-        recurrence: dict[str, Any] | None = unset,
+        recurrence: Annotated[
+            dict[str, Any] | None, Field(description=RECURRENCE_END_DESC)
+        ] = unset,
         parent_id: str | None = unset,
         labels: list[str] | None = unset,
         ctx: Context = None,
@@ -31,10 +35,16 @@ def register(
         """Create a recurring habit that resets each period.
 
         Habits differ from chores in that an unfinished occurrence does not
-        carry forward — each period gets a fresh start.
+        carry forward — each period gets a fresh start. ``complete_by`` is the
+        series start (anchor).
         ``recurrence`` follows the same shape as Task: ``{"type": "daily"}``,
         ``{"type": "every_n_days", "n": 3}``, or
-        ``{"type": "weekly", "days": ["Mon", "Wed"]}``.
+        ``{"type": "weekly", "days": ["Mon", "Wed"]}``. If it carries an ``end``
+        of ``{type: on_date, date}``, that date must be on or after the series
+        start (``complete_by``'s local calendar date); same-day is allowed.
+
+        ``parent_id`` accepts any reference form (UUID, ``#123``, ``acme-123``,
+        or app URL) and is resolved to a UUID before the create.
 
         v0.2 optional fields:
         - ``deadline_time_of_day``: ``"HH:MM"`` time-of-day deadline (user's TZ).
@@ -50,6 +60,8 @@ def register(
         })
         async with (await get_client(ctx=ctx)) as client:
             try:
+                if parent_id is not unset and parent_id is not None:
+                    payload["parent_id"] = await resolve_ref(client, parent_id)
                 habit = await client.create_habit(payload)
             except DefernoError as exc:
                 return format_error(exc)
@@ -61,7 +73,9 @@ def register(
         title: str | None = unset,
         description: str | None = unset,
         complete_by: str | None = unset,
-        recurrence: dict[str, Any] | None = unset,
+        recurrence: Annotated[
+            dict[str, Any] | None, Field(description=RECURRENCE_END_DESC)
+        ] = unset,
         labels: list[str] | None = unset,
         ctx: Context = None,
     ) -> str:
@@ -70,6 +84,10 @@ def register(
         ``habit_id`` accepts any reference form — UUID, sequence shorthand
         (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
         — and is resolved to a UUID before the patch.
+
+        If ``recurrence`` carries an ``end`` of ``{type: on_date, date}``, that
+        date must be on or after the series start (``complete_by``'s local
+        calendar date); same-day is allowed.
 
         v0.2 optional fields:
         - ``deadline_time_of_day``: ``"HH:MM"`` time-of-day deadline (user's TZ).

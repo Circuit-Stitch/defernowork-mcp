@@ -19,6 +19,7 @@ from typing import Awaitable, Callable
 from mcp.server.fastmcp import Context, FastMCP
 
 from ..client import DefernoClient, DefernoError
+from ..refs import resolve_ref
 
 
 def register(
@@ -50,13 +51,17 @@ def register(
     ) -> str:
         """Replace the pinned-list ordering with ``task_ids``.
 
-        ``task_ids`` must be an exact permutation of the user's current
-        pinned set: extra ids, missing ids, or duplicates all 400. To
-        add or remove an item, use ``set_item_pinned`` first, then
-        reorder. Returns ``{"reordered": True, "count": N}`` on success.
+        Each element of ``task_ids`` accepts any reference form — UUID, sequence
+        shorthand (``#123``, personal-org only), canonical ref (``acme-123``),
+        or app URL — and is resolved to a UUID before the call (order
+        preserved). The resolved set must be an exact permutation of the user's
+        current pinned set: extra ids, missing ids, or duplicates all 400. To
+        add or remove an item, use ``set_item_pinned`` first, then reorder.
+        Returns ``{"reordered": True, "count": N}`` on success.
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
+                task_ids = [await resolve_ref(client, t) for t in task_ids]
                 await client.reorder_pinned_tasks(task_ids)
             except DefernoError as exc:
                 return format_error(exc)

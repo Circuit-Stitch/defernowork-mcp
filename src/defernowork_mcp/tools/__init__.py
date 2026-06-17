@@ -7,6 +7,7 @@ from .event_occurrences import register as register_event_occurrences
 from .events import register as register_events
 from .feedback import register as register_feedback
 from .habits import register as register_habits
+from .item_activity import register as register_item_activity
 from .items import register as register_items
 from .pinned import register as register_pinned
 from .saved_searches import register as register_saved_searches
@@ -22,6 +23,7 @@ __all__ = [
     "register_events",
     "register_feedback",
     "register_habits",
+    "register_item_activity",
     "register_items",
     "register_pinned",
     "register_saved_searches",
