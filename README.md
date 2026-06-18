@@ -51,6 +51,55 @@ done-visibility window for full history. Compact list rows are narrower than
 the backend today (a kind-neutral `/items/search` is a known backend follow-on);
 use `list_items` to enumerate non-Task kinds.
 
+### Creating items (behavioral capture)
+
+Creation is **caller-categorized**: the agent answers a few jargon-free,
+behavioral questions and the server **deterministically derives** the item kind
+(Task / Habit / Chore / Event) and builds the kind-specific payload. The agent
+never names a Deferno kind — it describes how the thing *behaves*, and the
+derivation does the rest. There is no inference and no model call on this path;
+the kind is read straight off the discriminators.
+
+Two rules keep the discriminators honest:
+
+- **Date and time-of-day are orthogonal operands, never kind signals.** Every
+  kind carries a time-of-day — a deadline for Task/Chore/Habit, a start for
+  Event — so "has a set time" cannot decide the kind. (See the unified-WHEN model
+  in the Deferno backend: every kind gained an explicit time-of-day field.)
+- **Source never votes on kind.** An item synced from GitHub, Microsoft, or
+  Google Calendar can be any of the four kinds; external provenance is orthogonal
+  to the kind decision.
+
+#### Kind-derivation tree
+
+```mermaid
+flowchart TD
+    Start(["New item"]) --> Q1{"Do you attend it?"}
+    Q1 -->|yes| Event(["Event"])
+    Q1 -->|no| Q2{"Repeats on a schedule?"}
+    Q2 -->|no| Task(["Task"])
+    Q2 -->|yes| Q3{"Need it, or just want it?"}
+    Q3 -->|need| Chore(["Chore"])
+    Q3 -->|want| Habit(["Habit"])
+```
+
+`Event` short-circuits first: a thing you attend is an Event whether or not it
+repeats (a weekly stand-up is still an Event). `need` vs `want` is only asked
+*once we know it recurs* — every one-off (want **or** need) is a **Task**. The
+`need`/`want` split is the same obligation-vs-aspiration distinction the backend
+encodes as *carries-forward* (Chore) vs *lapses* (Habit).
+
+#### Truth table
+
+| Example                   | Attend? | Repeats? | Need / want | → Kind    |
+| ------------------------- | ------- | -------- | ----------- | --------- |
+| Weekly team stand-up      | yes     | —        | —           | **Event** |
+| Dentist appointment Tue   | yes     | —        | —           | **Event** |
+| Pay rent every month      | no      | yes      | need        | **Chore** |
+| Meditate daily            | no      | yes      | want        | **Habit** |
+| File taxes by Apr 15      | no      | no       | —           | **Task**  |
+| Read this novel (one-off) | no      | no       | —           | **Task**  |
+
 ### Other tools
 
 | Tool                  | Purpose                                                      |
