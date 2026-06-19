@@ -122,3 +122,17 @@ authority for the kind semantics the tree encodes (Deferno #231).
   avoid "occurs at a set time"); and the kind-neutral occurrence-tool collapse
   (its addressing model — firing-id vs ref+date — and the Events-only reschedule
   constraint are still open).
+- **Wire mapping (verified against `Deferno/backend/src/payloads.rs` + deferno-kmp
+  `CreatePayloadSerializationTest`):** `time_of_day` maps to `start_time_of_day`
+  for an Event and `deadline_time_of_day` for Task/Chore/Habit; `complete_by` is
+  a caller-supplied full datetime passed through verbatim, exactly as
+  `create_task`/`create_event` already require — the MCP does no timezone
+  resolution (it has no ambient user tz; the backend keys off `complete_by`'s
+  local date in the user's stored tz). The "split date + time_of_day" idea was
+  dropped once the server-side tz cost surfaced; the bare-`date` form remains
+  appropriate for device clients (deferno-kmp) that have the device tz.
+- **Canonical-contract scope:** the cross-repo golden vectors
+  (`tests/spec/capture/vectors.json`) pin the kind-derivation tree + field
+  routing. The vectors are canonical **pending the KMP amend** — `deferno-kmp`'s
+  `CaptureInput` still carries the rejected `occursAtSetTime`; reconciling it is
+  the follow-on in that repo.
