@@ -39,15 +39,16 @@
     },
     {
       "name": "repeats + want -> habit",
-      "input": {"title": "Stretch", "attend": false, "repeats": true, "obligation": "want", "recurrence": {"type": "daily"}},
+      "input": {"title": "Stretch", "attend": false, "repeats": true, "obligation": "want", "recurrence": {"type": "daily"}, "complete_by": "2026-06-20T16:00:00Z"},
       "kind": "habit",
-      "payload": {"title": "Stretch", "recurrence": {"type": "daily"}}
+      "payload": {"title": "Stretch", "recurrence": {"type": "daily"}, "complete_by": "2026-06-20T16:00:00Z"}
     }
   ],
   "raises": [
     {"name": "blank title", "input": {"title": "  ", "attend": false, "repeats": false}, "message_contains": "non-blank title"},
     {"name": "event without complete_by", "input": {"title": "Meeting", "attend": true, "repeats": false}, "message_contains": "complete_by"},
     {"name": "repeating without recurrence", "input": {"title": "Stretch", "attend": false, "repeats": true, "obligation": "want"}, "message_contains": "recurrence"},
-    {"name": "repeating without obligation", "input": {"title": "Stretch", "attend": false, "repeats": true, "recurrence": {"type": "daily"}}, "message_contains": "obligation"}
+    {"name": "repeating without obligation", "input": {"title": "Stretch", "attend": false, "repeats": true, "recurrence": {"type": "daily"}}, "message_contains": "obligation"},
+    {"name": "repeating without complete_by", "input": {"title": "Stretch", "attend": false, "repeats": true, "obligation": "want", "recurrence": {"type": "daily"}}, "message_contains": "complete_by"}
   ]
 }

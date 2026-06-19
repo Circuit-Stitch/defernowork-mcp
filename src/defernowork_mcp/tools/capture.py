@@ -48,7 +48,8 @@ def register(
           -> **Habit**? Required when ``repeats`` and not ``attend``.
 
         ``complete_by`` is a full ISO-8601 datetime (an Event's day, else the
-        deadline / series-start day) -- required for an Event. As with
+        deadline / series-start day) -- required for an Event and for a recurring
+        Chore/Habit (its series start); optional only for a one-off Task. As with
         ``create_task``, supply it in the user's intended local day; the backend
         keys off its calendar date in the user's saved timezone. ``time_of_day``
         is ``HH:MM`` wall-clock (the Event start, else the deadline time).

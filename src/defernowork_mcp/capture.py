@@ -89,6 +89,11 @@ def derive_create_payload(
             "a repeating capture requires obligation='need' (-> Chore) or "
             "'want' (-> Habit)"
         )
+    if complete_by is None:
+        raise CaptureError(
+            "a repeating Chore/Habit capture requires complete_by (the series "
+            "start) -- the backend requires it for /chores and /habits"
+        )
     kind = "chore" if obligation == "need" else "habit"
     return kind, _drop_none(
         {

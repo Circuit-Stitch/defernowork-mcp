@@ -102,10 +102,12 @@ async def test_want_posts_habits(server):
     await _call(
         server, "capture_item", title="Stretch", attend=False, repeats=True,
         obligation="want", recurrence={"type": "daily"},
+        complete_by="2026-06-20T16:00:00Z",
     )
     assert route.called
     body = json.loads(route.calls.last.request.content)
     assert body["recurrence"] == {"type": "daily"}
+    assert body["complete_by"] == "2026-06-20T16:00:00Z"
 
 
 @respx.mock

@@ -15,9 +15,12 @@ mapped client-side to each kind's native operation:
 - **Habit** occurrences are done-or-not, so ``done`` marks done, ``dropped``
   marks explicitly not-done, and ``in_progress`` is a **no-op**.
 
-The standalone clear/undo operations (the old ``clear_habit_occurrence`` /
-``delete_event_occurrence``) are folded away: ``dropped`` is how you negate an
-occurrence; the row-delete is no longer a separate tool.
+The old standalone clear/undo ops fold into ``dropped`` -- but only the **Habit**
+case is exact (clearing and marking-not-done both reset the occurrence to
+unrecorded). For an **Event**, ``dropped`` records a terminal *Dropped* status
+(and sweeps subtasks); it is NOT the old ``delete_event_occurrence`` row-erase (a
+clean revert to *Scheduled*). That revert is intentionally no longer exposed --
+re-mark the occurrence to change it.
 """
 
 from __future__ import annotations

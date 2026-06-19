@@ -128,13 +128,18 @@ authority for the kind semantics the tree encodes (Deferno #231).
   Status normalises to one enum — `in_progress` / `done` / `dropped` — mapped
   client-side to each kind's native op: Chore/Event support all three; a Habit is
   done-or-not, so `done`/`dropped` map to mark-done/mark-not-done and
-  `in_progress` is a no-op. The standalone clear/undo ops
-  (`clear_habit_occurrence` / `delete_event_occurrence`) fold into `dropped`.
+  `in_progress` is a no-op. The old standalone clear/undo ops fold into
+  `dropped` — exactly for a Habit (clear == mark-not-done, both reset the
+  occurrence), but for an Event `dropped` writes a terminal *Dropped* status, NOT
+  the old `delete_event_occurrence` row-erase (the clean revert to *Scheduled*),
+  which is intentionally dropped from the surface — re-mark to change it.
   Reschedule is live for Events; Chore/Habit return 501 today (legacy storage).
 - **Wire mapping (verified against `Deferno/backend/src/payloads.rs` + deferno-kmp
   `CreatePayloadSerializationTest`):** `time_of_day` maps to `start_time_of_day`
   for an Event and `deadline_time_of_day` for Task/Chore/Habit; `complete_by` is
-  a caller-supplied full datetime passed through verbatim, exactly as
+  a caller-supplied full datetime passed through verbatim (required for an Event
+  and a recurring Chore/Habit — the backend's `/chores` and `/habits` reject its
+  absence — optional only for a one-off Task), exactly as
   `create_task`/`create_event` already require — the MCP does no timezone
   resolution (it has no ambient user tz; the backend keys off `complete_by`'s
   local date in the user's stored tz). The "split date + time_of_day" idea was
