@@ -38,9 +38,7 @@ def register(
 
         ``complete_by`` must be an ISO-8601 UTC timestamp.
         ``parent_id`` attaches the new task as a child of an existing item and
-        accepts any reference form — UUID, sequence shorthand (``#123``,
-        personal-org only), canonical ref (``acme-123``), or app URL — resolved
-        to a UUID before the create. Omit it (or pass ``null``) to create at root.
+        accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions). Omit it (or pass ``null``) to create at root.
         ``productive`` and ``desire`` are floats in [0, 1] representing how
         productive this task feels and how much the user wants to do it.
         ``recurrence`` sets a repeat schedule. Use ``{"type": "daily"}``,
@@ -98,9 +96,7 @@ def register(
     ) -> str:
         """Patch mutable fields on a task.
 
-        ``task_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the update.
+        ``task_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
 
         ``status`` must be one of ``open``, ``in-progress``, ``in-review``,
         ``done``, ``dropped``, ``pruned``. The backend rejects completing a
@@ -173,8 +169,7 @@ def register(
     async def set_task_status(task_id: str, status: str, ctx: Context = None) -> str:
         """Convenience wrapper around ``update_task`` for status changes.
 
-        ``task_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL.
+        ``task_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
 
         Accepts ``open``, ``in-progress``, ``in-review``, ``done``, ``dropped``, ``pruned``.
         """
@@ -195,9 +190,7 @@ def register(
     ) -> str:
         """Move a task to a different parent or reorder within its current parent.
 
-        ``task_id`` and ``new_parent_id`` each accept any reference form — UUID,
-        sequence shorthand (``#123``, personal-org only), canonical ref
-        (``acme-123``), or app URL — and are resolved to UUIDs before the move.
+        ``task_id`` and ``new_parent_id`` each accept any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
 
         ``new_parent_id=None`` detaches the task to root level (kept as-is, not
         resolved). ``position`` is the insertion index in the target's children
@@ -224,8 +217,7 @@ def register(
     ) -> str:
         """Decompose a task into two child tasks while preserving the parent.
 
-        ``task_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL.
+        ``task_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
 
         Returns the updated parent and both new children.
         """
@@ -256,8 +248,7 @@ def register(
     ) -> str:
         """Insert a new next-step task directly after ``task_id`` in the sequence.
 
-        ``task_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL.
+        ``task_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
 
         Preserves any existing downstream chain. Returns the original task
         and the newly created next task.
@@ -284,8 +275,7 @@ def register(
     async def merge_task(task_id: str, ctx: Context = None) -> str:
         """Roll the active children of a task back into the parent.
 
-        ``task_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL.
+        ``task_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
 
         Child content is appended to the parent description; the children are
         marked as ``pruned`` but remain recoverable. Pass the id of any
@@ -328,8 +318,7 @@ def register(
     async def delete_task(task_id: str, ctx: Context = None) -> str:
         """Hard-delete a task by id.
 
-        ``task_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL.
+        ``task_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
         The returned ``task_id`` is the resolved UUID the deletion ran against.
         """
         async with (await get_client(ctx=ctx)) as client:
@@ -396,11 +385,9 @@ def register(
         Move operations accept ``new_parent_id`` (null for root) and an
         optional ``position`` (insertion index).
 
-        Both ``task_id`` and ``new_parent_id`` in each operation accept any
-        reference form — UUID, sequence shorthand (``#123``, personal-org
-        only), canonical ref (``acme-123``), or app URL — and are resolved to
-        UUIDs before the batch. A ``new_parent_id`` of ``null`` (detach to root)
-        is left as-is.
+        Both ``task_id`` and ``new_parent_id`` in each operation accept any item
+        ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions). A
+        ``new_parent_id`` of ``null`` (detach to root) is left as-is.
 
         All operations succeed or none do (all-or-nothing).  On success
         returns ``{"tasks": [...]}``, the list of all modified tasks.

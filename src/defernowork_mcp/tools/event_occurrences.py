@@ -32,9 +32,7 @@ def register(
     ) -> str:
         """Batch-presign attachments for a specific event occurrence (date).
 
-        ``event_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before presigning.
+        ``event_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
 
         Each entry in ``files`` is ``{filename, content_type, size_bytes}``.
         Server enforces 25 MB per-file cap, blocked-MIME list, and a
@@ -61,9 +59,7 @@ def register(
     ) -> str:
         """Commit intents and/or url-provider entries to an event occurrence.
 
-        ``event_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the commit.
+        ``event_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
 
         ``intents`` are attachment ids returned by a prior presign call
         whose files have been PUT to S3. ``urls`` are url-provider entries
@@ -87,9 +83,7 @@ def register(
     ) -> str:
         """List attachments on a specific event occurrence (date).
 
-        ``event_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the lookup.
+        ``event_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
 
         Returns the AttachmentView shape:
         ``{id, provider, filename, mime, size, created_at, created_by, url}``.
@@ -112,9 +106,7 @@ def register(
     ) -> str:
         """Delete a single attachment from an event occurrence.
 
-        ``event_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the delete. ``att_id`` is the
+        ``event_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions). ``att_id`` is the
         attachment id returned in the AttachmentView (not an item reference)
         and is passed through unresolved.
 
@@ -140,9 +132,7 @@ def register(
     ) -> str:
         """Append a new comment to an event occurrence (date).
 
-        ``event_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the comment is posted.
+        ``event_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
 
         Multiple comments per occurrence are supported (PR-F). Returns
         the persisted Comment with id + created_at.
@@ -167,9 +157,7 @@ def register(
     ) -> str:
         """Edit the latest comment on an event occurrence (date).
 
-        ``event_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the edit.
+        ``event_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
@@ -189,9 +177,7 @@ def register(
     ) -> str:
         """Soft-delete the latest comment on an event occurrence (date).
 
-        ``event_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the delete.
+        ``event_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
         """
         async with (await get_client(ctx=ctx)) as client:
             try:

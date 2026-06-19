@@ -34,9 +34,7 @@ def register(
     ) -> str:
         """Patch mutable fields on a chore. Omitted fields stay untouched.
 
-        ``chore_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the patch.
+        ``chore_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
 
         ``complete_by`` cannot be cleared on chores. Pass new value to shift
         the schedule. Updating ``recurrence`` rotates the chore's series ID
@@ -74,9 +72,7 @@ def register(
     async def delete_chore(chore_id: str, ctx: Context = None) -> str:
         """Archive (soft-delete) a chore.
 
-        ``chore_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the delete.
+        ``chore_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
@@ -94,9 +90,7 @@ def register(
     ) -> str:
         """Apply ``status`` to the earliest unresolved occurrence of a chore.
 
-        ``chore_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before marking the occurrence.
+        ``chore_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
 
         Useful for the common "I just did the dishes" case where the user
         doesn't want to look up which date is overdue. 404 if no

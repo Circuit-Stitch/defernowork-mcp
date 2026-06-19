@@ -50,9 +50,7 @@ def register(
         date must be on or after the series start (``complete_by``'s local
         calendar date); same-day is allowed.
 
-        ``event_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the patch.
+        ``event_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
 
         v0.2 optional fields:
         - ``subtask_template``: list of subtask shapes materialized per occurrence.
@@ -77,9 +75,7 @@ def register(
     async def delete_event(event_id: str, ctx: Context = None) -> str:
         """Archive (soft-delete) an event.
 
-        ``event_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the delete.
+        ``event_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
         """
         async with (await get_client(ctx=ctx)) as client:
             try:

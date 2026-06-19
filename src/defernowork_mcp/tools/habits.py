@@ -34,9 +34,7 @@ def register(
     ) -> str:
         """Patch mutable fields on a habit. Omitted fields stay untouched.
 
-        ``habit_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the patch.
+        ``habit_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
 
         If ``recurrence`` carries an ``end`` of ``{type: on_date, date}``, that
         date must be on or after the series start (``complete_by``'s local
@@ -65,9 +63,7 @@ def register(
     async def delete_habit(habit_id: str, ctx: Context = None) -> str:
         """Archive (soft-delete) a habit.
 
-        ``habit_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the delete.
+        ``habit_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
