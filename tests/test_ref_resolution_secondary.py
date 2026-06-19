@@ -4,10 +4,11 @@ Issue #14's MUST is the 6 plan tools (see test_ref_resolution_plan_tools.py).
 This file pins the "(decide during triage)" secondary set — the remaining
 id-taking args that pair naturally with a ``list_items`` ``ref``:
 
-- ``create_task`` / ``create_chore`` / ``create_habit`` / ``create_event`` —
-  the ``parent_id`` arg (creation tools were excluded from #7). ``parent_id``
-  defaults to the unset sentinel, so it is resolved ONLY when a real ref is
-  supplied (unset / None pass through untouched).
+- ``create_task`` — the ``parent_id`` arg (creation tools were excluded from
+  #7). ``parent_id`` defaults to the unset sentinel, so it is resolved ONLY
+  when a real ref is supplied (unset / None pass through untouched).
+  (create_chore/habit/event were folded into capture_item, which carries no
+  parent_id — ADR-0003 keeps parent_id a create_task-only escape.)
 - ``search_items`` — the ``parent_id`` filter (forwarded as a query param).
 - ``batch_tasks`` — nested operation ids (``task_id``, ``new_parent_id``); a
   ``new_parent_id`` of ``null`` (detach to root) is left as-is.
@@ -102,60 +103,6 @@ async def test_create_task_no_parent_id_no_resolve(server):
     assert not by_seq.called
     body = json.loads(create.calls.last.request.content)
     assert "parent_id" not in body
-
-
-@respx.mock
-async def test_create_chore_parent_id_canonical_resolves(server):
-    by_ref = respx.get(f"{BASE}/items/by-ref/u-1y0e2v-456").mock(
-        return_value=httpx.Response(200, json=_env(_item(PARENT_UUID)))
-    )
-    create = respx.post(f"{BASE}/chores").mock(
-        return_value=httpx.Response(201, json=_env(_item(kind="chore")))
-    )
-
-    await _call(server, "create_chore", title="t", parent_id="u-1y0e2v-456")
-
-    assert by_ref.called and create.called
-    body = json.loads(create.calls.last.request.content)
-    assert body["parent_id"] == PARENT_UUID
-
-
-@respx.mock
-async def test_create_habit_parent_id_sequence_resolves(server):
-    by_seq = respx.get(f"{BASE}/items/by-seq/456").mock(
-        return_value=httpx.Response(200, json=_env(_item(PARENT_UUID)))
-    )
-    create = respx.post(f"{BASE}/habits").mock(
-        return_value=httpx.Response(201, json=_env(_item(kind="habit")))
-    )
-
-    await _call(server, "create_habit", title="t", parent_id="#456")
-
-    assert by_seq.called and create.called
-    body = json.loads(create.calls.last.request.content)
-    assert body["parent_id"] == PARENT_UUID
-
-
-@respx.mock
-async def test_create_event_parent_id_sequence_resolves(server):
-    by_seq = respx.get(f"{BASE}/items/by-seq/456").mock(
-        return_value=httpx.Response(200, json=_env(_item(PARENT_UUID)))
-    )
-    create = respx.post(f"{BASE}/events").mock(
-        return_value=httpx.Response(201, json=_env(_item(kind="event")))
-    )
-
-    await _call(
-        server,
-        "create_event",
-        title="t",
-        complete_by="2026-07-01T09:00:00Z",
-        parent_id="#456",
-    )
-
-    assert by_seq.called and create.called
-    body = json.loads(create.calls.last.request.content)
-    assert body["parent_id"] == PARENT_UUID
 
 
 # ── search_items parent_id filter ─────────────────────────────────────────────

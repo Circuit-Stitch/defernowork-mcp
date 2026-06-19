@@ -122,3 +122,9 @@ async def test_validation_error_short_circuits_before_post(server):
 def test_capture_item_has_no_parent_id_param(server):
     sig = inspect.signature(_tool(server, "capture_item").fn)
     assert "parent_id" not in sig.parameters  # ADR-0003: parent_id is create_task-only
+
+
+@pytest.mark.parametrize("removed", ["create_chore", "create_habit", "create_event"])
+def test_per_kind_create_tools_removed(server, removed):
+    with pytest.raises(LookupError):
+        _tool(server, removed)

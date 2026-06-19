@@ -21,60 +21,6 @@ def register(
     unset: object,
 ) -> None:
     @mcp.tool()
-    async def create_chore(
-        title: str,
-        description: str | None = unset,
-        complete_by: str | None = unset,
-        recurrence: Annotated[
-            dict[str, Any] | None, Field(description=RECURRENCE_END_DESC)
-        ] = unset,
-        parent_id: str | None = unset,
-        labels: list[str] | None = unset,
-        ctx: Context = None,
-    ) -> str:
-        """Create a recurring chore that lingers until done.
-
-        Chores differ from habits in that an unfinished occurrence carries
-        forward (Missed/InProgress) rather than resetting each period.
-        ``complete_by`` should be the first scheduled date as ISO-8601 — it is
-        the series start (anchor).
-        ``recurrence`` follows the same shape as Task: ``{"type": "daily"}``,
-        ``{"type": "every_n_days", "n": 3}``, or
-        ``{"type": "weekly", "days": ["Mon", "Wed"]}``. If it carries an ``end``
-        of ``{type: on_date, date}``, that date must be on or after the series
-        start (``complete_by``'s local calendar date); same-day is allowed.
-
-        ``parent_id`` accepts any reference form (UUID, ``#123``, ``acme-123``,
-        or app URL) and is resolved to a UUID before the create.
-
-        v0.2 optional fields:
-        - ``cadence_mode``: ``"rolling"`` (default; the next occurrence is
-          computed from the actual completion time) or ``"fixed"`` (the next
-          occurrence is anchored to the original schedule, ignoring completion
-          delay).
-        - ``deadline_time_of_day``: ``"HH:MM"`` time-of-day deadline within
-          ``scheduled_date`` (user's TZ). Defaults to end-of-day.
-        - ``subtask_template``: a list of subtask shapes that materialize as
-          child Tasks on each occurrence. Empty list (default) means no template.
-        """
-        payload = compact({
-            "title": title,
-            "description": description,
-            "complete_by": complete_by,
-            "recurrence": recurrence,
-            "parent_id": parent_id,
-            "labels": labels,
-        })
-        async with (await get_client(ctx=ctx)) as client:
-            try:
-                if parent_id is not unset and parent_id is not None:
-                    payload["parent_id"] = await resolve_ref(client, parent_id)
-                chore = await client.create_chore(payload)
-            except DefernoError as exc:
-                return format_error(exc)
-        return json.dumps(chore)
-
-    @mcp.tool()
     async def update_chore(
         chore_id: str,
         title: str | None = unset,
