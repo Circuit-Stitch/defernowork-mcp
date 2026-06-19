@@ -20,6 +20,6 @@
   ],
   "client_method": "add_to_plan",
   "client_args_from_example": ["task_id"],
-  "mcp_tool": "add_to_plan",
-  "mcp_tool_args_from_example": ["task_id"]
+  "mcp_tool": null,
+  "mcp_tool_args_from_example": []
 }

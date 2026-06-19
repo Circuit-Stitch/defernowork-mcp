@@ -341,25 +341,6 @@ def register(
         return json.dumps({"deleted": True, "task_id": task_id})
 
     @mcp.tool()
-    async def get_tasks_calendar(
-        start: str,
-        end: str,
-        tz: str | None = None,
-        ctx: Context = None,
-    ) -> str:
-        """Calendar view of tasks (recurring expansions + due dates).
-
-        ``start`` and ``end`` are YYYY-MM-DD strings; ``end`` is exclusive.
-        ``tz`` is an optional IANA timezone for local-midnight alignment.
-        """
-        async with (await get_client(ctx=ctx)) as client:
-            try:
-                events = await client.get_calendar_events(start, end, tz=tz)
-            except DefernoError as exc:
-                return format_error(exc)
-        return json.dumps(events)
-
-    @mcp.tool()
     async def import_data(
         data: dict[str, Any] | None = None,
         ctx: Context = None,

@@ -20,6 +20,6 @@
   ],
   "client_method": "remove_from_plan",
   "client_args_from_example": ["task_id"],
-  "mcp_tool": "remove_from_plan",
-  "mcp_tool_args_from_example": ["task_id"]
+  "mcp_tool": null,
+  "mcp_tool_args_from_example": []
 }

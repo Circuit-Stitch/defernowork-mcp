@@ -119,8 +119,7 @@ encodes as *carries-forward* (Chore) vs *lapses* (Habit).
 | `create_chore` / `create_habit` / `create_event` | Create the other recurring/calendar item kinds |
 | `get_daily_plan`      | Today's curated daily plan (recurring + carried forward)    |
 | `get_items_plan`      | Daily plan across all item kinds (polymorphic)              |
-| `add_to_plan` / `remove_from_plan` / `reorder_plan` | Manage the daily plan ordering |
-| `get_calendar_events` | Query recurring + one-off events for a date range           |
+| `add_to_items_plan` / `remove_from_items_plan` / `reorder_items_plan` | Manage the daily plan ordering |
 | `get_items_calendar`  | Calendar view across all item kinds                         |
 | `get_mood_history`    | Mood log for finished tasks                                 |
 
