@@ -11,7 +11,6 @@ from .item_activity import register as register_item_activity
 from .items import register as register_items
 from .pinned import register as register_pinned
 from .saved_searches import register as register_saved_searches
-from .task_attachments import register as register_task_attachments
 from .tasks import register as register_tasks
 from .daily_plan import register as register_daily_plan
 
@@ -27,7 +26,6 @@ __all__ = [
     "register_items",
     "register_pinned",
     "register_saved_searches",
-    "register_task_attachments",
     "register_tasks",
     "register_daily_plan",
 ]

@@ -35,7 +35,7 @@
   ],
   "client_method": "presign_task_attachments",
   "client_args_from_example": ["files"],
-  "mcp_tool": "presign_task_attachments",
-  "mcp_tool_args_from_example": ["files"],
+  "mcp_tool": null,
+  "mcp_tool_args_from_example": [],
   "notes": "PR-F. Server enforces 25 MB cap + blocked MIME list + max-attachments cap. After presign, the client PUTs each file to its put_url; then calls /attachments commit with the returned attachment_ids. Wire keys for each file are filename / content_type / size_bytes (the Rust PresignRequest struct has no serde renames)."
 }
