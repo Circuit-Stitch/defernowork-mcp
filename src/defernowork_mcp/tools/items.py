@@ -30,42 +30,16 @@ def register(
     ) -> str:
         """Fetch a single item (Task / Habit / Chore / Event) by any reference.
 
-        ``item`` accepts any Ref input form and is resolved transparently:
+        ``item`` is any item ref (UUID / ``#123`` / ``acme-123`` / app URL),
+        resolved transparently — see the server instructions on identifiers. The
+        unambiguous GitHub form ``owner/repo#N`` auto-routes to by-alias; for an
+        ambiguous external alias (e.g. ``ABC-223``) pass ``as_alias=true`` to
+        force the by-alias lookup. (A bare ``#N`` always means a Deferno sequence
+        here, never a GitHub issue.)
 
-        - a **UUID** (``GET /items/{id}``);
-        - a **Sequence shorthand** -- ``#123`` or bare ``123``. This resolves
-          against your **personal org only**, by design. For an item in a
-          shared org, name it by its **Canonical ref** (``acme-123``) or its
-          **App URL** instead -- both resolve across orgs;
-        - a **Canonical ref** (``slug-123``, e.g. ``u-1y0e2v-123``);
-        - an **App URL** (``https://app.defernowork.com/o/{org_slug}/items/{seq-or-id}``);
-        - the unambiguous **GitHub Alias** ``owner/repo#N`` (it carries a ``/``,
-          so it can't be confused with a Canonical ref) -- auto-routed to the
-          by-alias endpoint.
-
-        **Deferno-`#` vs GitHub-`#` ambiguity.** A *bare* ``#N`` always means a
-        Deferno Sequence shorthand here; it is NOT inferred as a GitHub issue.
-        Likewise an ambiguous string like ``ABC-223`` collides with a Canonical
-        ref and is therefore NOT auto-routed to alias resolution. Inferring
-        which a user means from conversation is the job of a future
-        **context-adaptive** classifier (see CONTEXT.md "Flagged ambiguities"),
-        not this tool. Until then, use ``as_alias=true`` to force the alias path.
-
-        Args:
-            item: Any Ref input form (or, with ``as_alias=true``, a raw alias).
-            full: When ``true``, return the complete record (action history,
-                comments, children, mood, attachments, ...) instead of the
-                default compact projection.
-            as_alias: When ``true``, BYPASS the Ref classifier and look ``item``
-                up directly via ``GET /items/by-alias/{item}``. This is the
-                explicit escape-hatch for ambiguous external aliases (e.g.
-                ``ABC-223``) that the classifier deliberately will not
-                auto-route. The unambiguous GitHub form ``owner/repo#N`` already
-                routes to by-alias WITHOUT this flag.
-
-        Returns a **compact** projection by default (a small whitelist of
-        fields, including ``description``). Pass ``full=true`` for the complete
-        record (action history, comments, children, mood, attachments, ...).
+        Returns a Compact projection by default (includes ``description``); pass
+        ``full=true`` for the complete record (history, comments, children, mood,
+        attachments, …).
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
@@ -95,11 +69,9 @@ def register(
     ) -> str:
         """List items of any kind (Task / Habit / Chore / Event), windowed.
 
-        The canonical, bounded list view. Returns a **Compact** projection by
-        default -- a small fixed field set per row (``ref``, ``kind``, ``title``,
-        ``status``, ``complete_by``, ``parent_id``, ``labels``) with the heavy
-        body (``description``) and raw ``id`` dropped -- so a query returns a
-        trimmed set, not the entire working set in full detail.
+        The canonical, bounded list view. Returns a Compact projection by default
+        (see the server instructions on Compact reads); ``full=true`` returns
+        full rows.
 
         Filters (composed into an OData ``$filter`` with ``and``):
 
@@ -152,12 +124,9 @@ def register(
     ) -> str:
         """Full-text search over items, returning a Compact projection.
 
-        The compact, kind-neutral full-text search over items. Returns a
-        **Compact** projection by default -- the same small fixed field set per
-        row as ``list_items`` (``ref``, ``kind``, ``title``, ``status``,
-        ``complete_by``, ``parent_id``, ``labels``) -- so the heavy body
-        (``description``) and the raw ``id`` are dropped. Pass ``full=true`` for
-        the rows verbatim.
+        The compact, kind-neutral full-text search over items. Returns a Compact
+        projection by default (same field set as ``list_items``; see the server
+        instructions on Compact reads); ``full=true`` returns rows verbatim.
 
         Scope: **full-text search currently covers Tasks only.** This tool is
         backed by the Tasks search path (``GET /tasks/search``) because the
@@ -173,10 +142,8 @@ def register(
             label: Filter by label tag.
             from_date: Filter items due on or after this ISO 8601 date.
             to_date: Filter items due on or before this ISO 8601 date.
-            parent_id: Scope search to children of this item. Accepts any
-                reference form — UUID, sequence shorthand (``#123``,
-                personal-org only), canonical ref (``acme-123``), or app URL —
-                resolved to a UUID before the search.
+            parent_id: Scope search to children of this item — any item ref
+                (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
             full: When ``true``, return every field on each row (no projection).
         """
         async with (await get_client(ctx=ctx)) as client:
@@ -242,10 +209,8 @@ def register(
     ) -> str:
         """Add an item (any kind) to the daily plan.
 
-        ``task_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the call, so a ``ref`` from
-        ``list_items`` works directly.
+        ``task_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app
+        URL; see instructions), so a ``ref`` from ``list_items`` works directly.
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
@@ -263,9 +228,7 @@ def register(
     ) -> str:
         """Remove an item from the daily plan.
 
-        ``task_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the call.
+        ``task_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
@@ -283,9 +246,7 @@ def register(
     ) -> str:
         """Replace the daily plan ordering with the given full list of IDs.
 
-        Each element of ``task_ids`` accepts any reference form — UUID, sequence
-        shorthand (``#123``, personal-org only), canonical ref (``acme-123``),
-        or app URL — and is resolved to a UUID before the call (order preserved).
+        Each element of ``task_ids`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
@@ -306,9 +267,7 @@ def register(
     ) -> str:
         """Convert an item to a different kind (Task / Chore / Habit / Event).
 
-        ``item_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the conversion.
+        ``item_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
 
         ``to`` is one of ``"task"``, ``"chore"``, ``"habit"``, ``"event"`` --
         this is the backend wire field name (``ConvertItemPayload.to``).
@@ -336,9 +295,7 @@ def register(
     async def get_item_history(item_id: str, ctx: Context = None) -> str:
         """Return the change-history list for any item kind (Task/Habit/Chore/Event).
 
-        ``item_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the history lookup.
+        ``item_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
@@ -356,9 +313,7 @@ def register(
     ) -> str:
         """Pin or unpin a sidebar item (Task/Habit/Chore/Event).
 
-        ``item_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the pin toggle.
+        ``item_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
 
         Backend body is ``{pinned: bool}`` -- the gap-closure plan's optional
         ``label`` argument is not part of this endpoint (custom pin labels
@@ -372,3 +327,30 @@ def register(
             except DefernoError as exc:
                 return format_error(exc)
         return json.dumps({"ok": True})
+
+    @mcp.tool()
+    async def move_item(
+        item_id: str,
+        new_parent_id: str | None = None,
+        position: int | None = None,
+        ctx: Context = None,
+    ) -> str:
+        """Move any item (Task / Chore / Habit / Event) to a new parent or reorder it.
+
+        Kind-neutral reparent/reorder via ``/items/{id}/move`` — works for every
+        kind, so it is also how you parent a Chore/Habit/Event created with
+        ``capture_item``. ``item_id`` and ``new_parent_id`` each accept any item
+        ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
+        ``new_parent_id=None`` detaches to a root (kept as-is, not resolved);
+        ``position`` is the insertion index in the target's children (0 = first;
+        omit to append).
+        """
+        async with (await get_client(ctx=ctx)) as client:
+            try:
+                item_id = await resolve_ref(client, item_id)
+                if new_parent_id is not None:
+                    new_parent_id = await resolve_ref(client, new_parent_id)
+                result = await client.move_item(item_id, new_parent_id, position)
+            except DefernoError as exc:
+                return format_error(exc)
+        return json.dumps(result)

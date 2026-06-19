@@ -32,7 +32,7 @@
   ],
   "client_method": "set_event_occurrence",
   "client_args_from_example": ["action", "cascade_subtasks"],
-  "mcp_tool": "set_event_occurrence",
+  "mcp_tool": null,
   "mcp_tool_args_from_example": ["action", "cascade_subtasks"],
   "notes": "OccurrenceAction accepts in_progress|done|dropped (alias skipped). Events never produce DoneLate (EVENT-006). cascade_subtasks=true sweeps non-terminal subtasks to Done; defaults false and 409s if subtasks remain (SUBTASK-003)."
 }

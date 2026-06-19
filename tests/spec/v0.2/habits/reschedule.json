@@ -16,7 +16,7 @@
   ],
   "client_method": "reschedule_habit_occurrence",
   "client_args_from_example": ["new_date"],
-  "mcp_tool": "reschedule_habit_occurrence",
+  "mcp_tool": null,
   "mcp_tool_args_from_example": ["new_date"],
   "notes": "Backend returns 501 today (legacy habit storage). Tool exposed for forward compat -- when storage migrates this becomes 200 with the new Occurrence."
 }

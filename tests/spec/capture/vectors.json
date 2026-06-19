@@ -1,0 +1,54 @@
+{
+  "_doc": "Golden behavioral-input -> (kind, payload) vectors for the ADR-0003 kind-derivation tree (the cross-repo canonical contract). complete_by is a caller-supplied full datetime, passed through verbatim. CANONICAL here; deferno-kmp's deriveCreatePayload must adopt the attend/need-want discriminator to match -- PENDING that KMP amend.",
+  "ok": [
+    {
+      "name": "attend -> event",
+      "input": {"title": "Dentist", "attend": true, "repeats": false, "complete_by": "2026-07-01T16:00:00Z"},
+      "kind": "event",
+      "payload": {"title": "Dentist", "complete_by": "2026-07-01T16:00:00Z"}
+    },
+    {
+      "name": "attend + repeats -> event (recurrence carried, obligation ignored)",
+      "input": {"title": "Stand-up", "attend": true, "repeats": true, "complete_by": "2026-07-01T16:00:00Z", "recurrence": {"type": "weekly", "days": ["Mon"]}},
+      "kind": "event",
+      "payload": {"title": "Stand-up", "complete_by": "2026-07-01T16:00:00Z", "recurrence": {"type": "weekly", "days": ["Mon"]}}
+    },
+    {
+      "name": "event time_of_day -> start_time_of_day",
+      "input": {"title": "Call", "attend": true, "repeats": false, "complete_by": "2026-07-01T16:00:00Z", "time_of_day": "09:30"},
+      "kind": "event",
+      "payload": {"title": "Call", "complete_by": "2026-07-01T16:00:00Z", "start_time_of_day": "09:30"}
+    },
+    {
+      "name": "no attend, no repeat -> task",
+      "input": {"title": "Buy milk", "attend": false, "repeats": false},
+      "kind": "task",
+      "payload": {"title": "Buy milk"}
+    },
+    {
+      "name": "task complete_by+time_of_day -> deadline_time_of_day",
+      "input": {"title": "File taxes", "attend": false, "repeats": false, "complete_by": "2026-04-15T16:00:00Z", "time_of_day": "17:00", "description": "before EOD"},
+      "kind": "task",
+      "payload": {"title": "File taxes", "description": "before EOD", "complete_by": "2026-04-15T16:00:00Z", "deadline_time_of_day": "17:00"}
+    },
+    {
+      "name": "repeats + need -> chore",
+      "input": {"title": "Take out trash", "attend": false, "repeats": true, "obligation": "need", "recurrence": {"type": "weekly", "days": ["Tue"]}, "complete_by": "2026-06-23T16:00:00Z"},
+      "kind": "chore",
+      "payload": {"title": "Take out trash", "recurrence": {"type": "weekly", "days": ["Tue"]}, "complete_by": "2026-06-23T16:00:00Z"}
+    },
+    {
+      "name": "repeats + want -> habit",
+      "input": {"title": "Stretch", "attend": false, "repeats": true, "obligation": "want", "recurrence": {"type": "daily"}, "complete_by": "2026-06-20T16:00:00Z"},
+      "kind": "habit",
+      "payload": {"title": "Stretch", "recurrence": {"type": "daily"}, "complete_by": "2026-06-20T16:00:00Z"}
+    }
+  ],
+  "raises": [
+    {"name": "blank title", "input": {"title": "  ", "attend": false, "repeats": false}, "message_contains": "non-blank title"},
+    {"name": "event without complete_by", "input": {"title": "Meeting", "attend": true, "repeats": false}, "message_contains": "complete_by"},
+    {"name": "repeating without recurrence", "input": {"title": "Stretch", "attend": false, "repeats": true, "obligation": "want"}, "message_contains": "recurrence"},
+    {"name": "repeating without obligation", "input": {"title": "Stretch", "attend": false, "repeats": true, "recurrence": {"type": "daily"}}, "message_contains": "obligation"},
+    {"name": "repeating without complete_by", "input": {"title": "Stretch", "attend": false, "repeats": true, "obligation": "want", "recurrence": {"type": "daily"}}, "message_contains": "complete_by"}
+  ]
+}

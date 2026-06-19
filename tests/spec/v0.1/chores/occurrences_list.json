@@ -25,6 +25,6 @@
   ],
   "client_method": "list_chore_occurrences",
   "client_args_from_example": ["from_date", "to_date"],
-  "mcp_tool": "list_chore_occurrences",
+  "mcp_tool": null,
   "mcp_tool_args_from_example": ["from_date", "to_date"]
 }

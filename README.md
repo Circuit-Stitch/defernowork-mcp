@@ -111,16 +111,15 @@ encodes as *carries-forward* (Chore) vs *lapses* (Habit).
 | `create_task`         | Create a new task (optionally nested under a parent)        |
 | `update_task`         | Patch any mutable field (title, description, status, mood…) |
 | `set_task_status`     | Convenience wrapper for `open`/`in-progress`/`done`/…       |
-| `move_task`           | Reparent or reorder a task in the hierarchy                 |
+| `move_item`           | Reparent or reorder any item (Task/Chore/Habit/Event)       |
 | `split_task`          | Decompose a task into two child tasks                       |
 | `fold_task`           | Insert a next-step task into the sibling chain              |
 | `merge_task`          | Roll a parent's active children back into the parent        |
 | `convert_item`        | Convert an item to a different kind (Task/Chore/Habit/Event)|
-| `create_chore` / `create_habit` / `create_event` | Create the other recurring/calendar item kinds |
+| `capture_item`        | Create any item by behavior → Task/Chore/Habit/Event (the create front door; see [Creating items](#creating-items-behavioral-capture)) |
 | `get_daily_plan`      | Today's curated daily plan (recurring + carried forward)    |
 | `get_items_plan`      | Daily plan across all item kinds (polymorphic)              |
-| `add_to_plan` / `remove_from_plan` / `reorder_plan` | Manage the daily plan ordering |
-| `get_calendar_events` | Query recurring + one-off events for a date range           |
+| `add_to_items_plan` / `remove_from_items_plan` / `reorder_items_plan` | Manage the daily plan ordering |
 | `get_items_calendar`  | Calendar view across all item kinds                         |
 | `get_mood_history`    | Mood log for finished tasks                                 |
 

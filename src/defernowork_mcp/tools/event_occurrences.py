@@ -1,8 +1,10 @@
-"""MCP tools for event occurrences (PR-D v0.2 surface).
+"""MCP tools for Event-occurrence comments + attachments (PR-F surface).
 
-This module wires the per-occurrence operations on Events: list, set, delete.
-Subsequent gap-closure tasks add per-occurrence comments, attachments, and
-the SCOPE-010 reschedule endpoint to this module.
+Event-occurrence *status* (list / set / reschedule) is handled by the
+kind-neutral occurrence tools (tools/occurrences.py). This module wires the
+Event-only per-occurrence comment and attachment operations, which have no
+kind-neutral equivalent: an Event occurrence is addressed by ``event_id`` +
+``date``, and only Events expose occurrence-scoped comments/attachments.
 """
 
 from __future__ import annotations
@@ -22,111 +24,6 @@ def register(
     format_error: Callable[[DefernoError], str],
 ) -> None:
     @mcp.tool()
-    async def list_event_occurrences(
-        event_id: str,
-        from_date: str | None = None,
-        to_date: str | None = None,
-        ctx: Context = None,
-    ) -> str:
-        """List occurrences for an Event in a date range.
-
-        ``event_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the lookup.
-
-        ``from_date`` / ``to_date`` are YYYY-MM-DD; both optional. Returns
-        the unified-Occurrence shape (id, parent_id, scheduled_date,
-        status, comment, attachments). Events never produce ``DoneLate``.
-        """
-        async with (await get_client(ctx=ctx)) as client:
-            try:
-                event_id = await resolve_ref(client, event_id)
-                occs = await client.list_event_occurrences(event_id, from_date, to_date)
-            except DefernoError as exc:
-                return format_error(exc)
-        return json.dumps(occs)
-
-    @mcp.tool()
-    async def set_event_occurrence(
-        event_id: str,
-        date: str,
-        action: str,
-        cascade_subtasks: bool = False,
-        ctx: Context = None,
-    ) -> str:
-        """Mark a single event occurrence with an action.
-
-        ``event_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the mark.
-
-        ``action`` is one of ``"in_progress"``, ``"done"``, ``"dropped"``
-        (alias: ``"skipped"``). ``date`` is YYYY-MM-DD.
-
-        When the occurrence has materialized subtasks, ``cascade_subtasks=false``
-        (the default) causes a 409 if any subtask is non-terminal
-        (SUBTASK-003). Pass ``cascade_subtasks=true`` to sweep them to
-        the matching terminal status.
-        """
-        async with (await get_client(ctx=ctx)) as client:
-            try:
-                event_id = await resolve_ref(client, event_id)
-                occ = await client.set_event_occurrence(
-                    event_id, date, action, cascade_subtasks
-                )
-            except DefernoError as exc:
-                return format_error(exc)
-        return json.dumps(occ)
-
-    @mcp.tool()
-    async def delete_event_occurrence(
-        event_id: str,
-        date: str,
-        ctx: Context = None,
-    ) -> str:
-        """Clear an event occurrence row entirely (undo a prior mark).
-
-        ``event_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the clear.
-
-        ``date`` is YYYY-MM-DD. Returns ``{"ok": true}`` on success.
-        """
-        async with (await get_client(ctx=ctx)) as client:
-            try:
-                event_id = await resolve_ref(client, event_id)
-                await client.delete_event_occurrence(event_id, date)
-            except DefernoError as exc:
-                return format_error(exc)
-        return json.dumps({"ok": True})
-
-    @mcp.tool()
-    async def reschedule_event_occurrence(
-        event_id: str,
-        date: str,
-        new_date: str,
-        ctx: Context = None,
-    ) -> str:
-        """Move a single event occurrence to ``new_date`` without touching the RRULE.
-
-        ``event_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the reschedule.
-
-        The origin date's row is marked ``Dropped`` (with
-        ``rescheduled_to=new_date``); a fresh ``Scheduled`` row lands on
-        the target date (with ``rescheduled_from=origin_date``). 400 if
-        ``new_date`` equals the origin date.
-        """
-        async with (await get_client(ctx=ctx)) as client:
-            try:
-                event_id = await resolve_ref(client, event_id)
-                occ = await client.reschedule_event_occurrence(event_id, date, new_date)
-            except DefernoError as exc:
-                return format_error(exc)
-        return json.dumps(occ)
-
-    @mcp.tool()
     async def presign_event_occurrence_attachments(
         event_id: str,
         date: str,
@@ -135,9 +32,7 @@ def register(
     ) -> str:
         """Batch-presign attachments for a specific event occurrence (date).
 
-        ``event_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before presigning.
+        ``event_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
 
         Each entry in ``files`` is ``{filename, content_type, size_bytes}``.
         Server enforces 25 MB per-file cap, blocked-MIME list, and a
@@ -164,9 +59,7 @@ def register(
     ) -> str:
         """Commit intents and/or url-provider entries to an event occurrence.
 
-        ``event_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the commit.
+        ``event_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
 
         ``intents`` are attachment ids returned by a prior presign call
         whose files have been PUT to S3. ``urls`` are url-provider entries
@@ -190,9 +83,7 @@ def register(
     ) -> str:
         """List attachments on a specific event occurrence (date).
 
-        ``event_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the lookup.
+        ``event_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
 
         Returns the AttachmentView shape:
         ``{id, provider, filename, mime, size, created_at, created_by, url}``.
@@ -215,9 +106,7 @@ def register(
     ) -> str:
         """Delete a single attachment from an event occurrence.
 
-        ``event_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the delete. ``att_id`` is the
+        ``event_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions). ``att_id`` is the
         attachment id returned in the AttachmentView (not an item reference)
         and is passed through unresolved.
 
@@ -243,9 +132,7 @@ def register(
     ) -> str:
         """Append a new comment to an event occurrence (date).
 
-        ``event_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the comment is posted.
+        ``event_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
 
         Multiple comments per occurrence are supported (PR-F). Returns
         the persisted Comment with id + created_at.
@@ -270,9 +157,7 @@ def register(
     ) -> str:
         """Edit the latest comment on an event occurrence (date).
 
-        ``event_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the edit.
+        ``event_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
@@ -292,9 +177,7 @@ def register(
     ) -> str:
         """Soft-delete the latest comment on an event occurrence (date).
 
-        ``event_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the delete.
+        ``event_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
         """
         async with (await get_client(ctx=ctx)) as client:
             try:

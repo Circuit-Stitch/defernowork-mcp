@@ -9,9 +9,9 @@
   "responses": [
     {"status": 204, "shape": "null", "example": null}
   ],
-  "client_method": "delete_event_occurrence",
+  "client_method": null,
   "client_args_from_example": [],
-  "mcp_tool": "delete_event_occurrence",
+  "mcp_tool": null,
   "mcp_tool_args_from_example": [],
   "notes": "Clears the per-date row entirely (used to undo a mark)."
 }

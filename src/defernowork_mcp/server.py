@@ -42,6 +42,7 @@ from .credentials import load_credentials
 from .refs import COMPACT_ITEM_FIELDS, project, resolve_ref
 from .tools import (
     register_auth,
+    register_capture,
     register_chores,
     register_comments,
     register_daily_plan,
@@ -51,9 +52,9 @@ from .tools import (
     register_habits,
     register_item_activity,
     register_items,
+    register_occurrences,
     register_pinned,
     register_saved_searches,
-    register_task_attachments,
     register_tasks,
 )
 
@@ -266,16 +267,27 @@ def create_server(http_transport: bool = False) -> FastMCP:
         "AS metadata → Authorization Code + PKCE). "
         "Use `whoami` to confirm authentication, `list_items` to index the "
         "user's current items, `search_items` to find items by text, and "
-        "`get_item` for full detail on one item. Use "
-        "`create_task` / `update_task` for normal CRUD. Use "
+        "`get_item` for full detail on one item. "
+        "To create any item, use `capture_item`: answer how it behaves "
+        "(`attend`? `repeats`? `obligation` need-vs-want) and the server derives "
+        "Task / Chore / Habit / Event. Use `create_task` directly only for a "
+        "subtask under a parent, a `desire` score, or sequence chains; `update_*` "
+        "edits an existing item. Use "
         "`split_task` to decompose a task into two subtasks, `fold_task` to insert "
         "a next-step task in a sequence, and `merge_task` to roll active children "
         "back into their parent. "
         "Use `get_daily_plan` to see today's curated plan (auto-seeded from "
-        "recurring tasks + carried-forward items), `add_to_plan` / "
-        "`remove_from_plan` to manage it. When the user asks about their "
+        "recurring tasks + carried-forward items), `add_to_items_plan` / "
+        "`remove_from_items_plan` to manage it. When the user asks about their "
         "current tasks or what they should work on today, prefer "
         "`get_daily_plan` over `list_items`. "
+        "Identifiers: every tool that takes an item reference accepts any Ref "
+        "input form — a UUID, a Sequence shorthand (`#123`, your personal org "
+        "only), a Canonical ref (`acme-123`, resolves cross-org), or an app URL "
+        "— and resolves it to the item transparently before acting. Reads return "
+        "a Compact projection by default (a small whitelist of fields; the heavy "
+        "`description`/body is included on a single-item `get_item` but dropped "
+        "from list rows) — pass `full=true` for the complete record. "
         "To comment on or attach files to a Task, Chore, or Habit, use the "
         "kind-neutral item-level tools — `post_item_comment` / "
         "`list_item_comments` and `presign_item_attachments` / "
@@ -295,11 +307,12 @@ def create_server(http_transport: bool = False) -> FastMCP:
     # ── Register tool modules ─────────────────────────────────────
     register_auth(mcp, _get_client_async, _get_anon_client, _format_error, _compact, _UNSET)
     register_tasks(mcp, _get_client_async, _format_error, _compact, _UNSET)
-    register_task_attachments(mcp, _get_client_async, _format_error)
+    register_capture(mcp, _get_client_async, _format_error)
     register_chores(mcp, _get_client_async, _format_error, _compact, _UNSET)
     register_habits(mcp, _get_client_async, _format_error, _compact, _UNSET)
     register_events(mcp, _get_client_async, _format_error, _compact, _UNSET)
     register_event_occurrences(mcp, _get_client_async, _format_error)
+    register_occurrences(mcp, _get_client_async, _format_error)
     register_comments(mcp, _get_client_async, _format_error, _compact, _UNSET)
     register_saved_searches(mcp, _get_client_async, _format_error, _compact, _UNSET)
     register_feedback(mcp, _get_client_async, _format_error, _compact, _UNSET)

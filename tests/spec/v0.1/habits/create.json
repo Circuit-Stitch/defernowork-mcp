@@ -29,6 +29,6 @@
   ],
   "client_method": "create_habit",
   "client_args_from_example": ["title"],
-  "mcp_tool": "create_habit",
-  "mcp_tool_args_from_example": ["title"]
+  "mcp_tool": null,
+  "mcp_tool_args_from_example": []
 }

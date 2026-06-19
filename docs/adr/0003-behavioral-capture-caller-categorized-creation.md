@@ -119,6 +119,38 @@ authority for the kind semantics the tree encodes (Deferno #231).
 - **Follow-ons (not decided here):** the `CONTEXT.md` glossary entries for the new
   vocabulary (*Behavioral capture*, *Kind derivation*, and the *Attendance /
   Recurrence / Need-vs-want* discriminators, each with an `_Avoid_` note — e.g.
-  avoid "occurs at a set time"); and the kind-neutral occurrence-tool collapse
-  (its addressing model — firing-id vs ref+date — and the Events-only reschedule
-  constraint are still open).
+  avoid "occurs at a set time").
+- **Resolved follow-on — kind-neutral occurrence collapse (`tools/occurrences.py`).**
+  The twelve per-kind occurrence tools collapsed to three (`list_occurrences`,
+  `set_occurrence_status`, `reschedule_occurrence`) plus the chore-specific
+  `mark_next_chore_done`. Addressing is **ref + date** (the kind is resolved from
+  the ref via `resolve_ref_with_kind`; a raw UUID pays one `GET /items/{id}`).
+  Status normalises to one enum — `in_progress` / `done` / `dropped` — mapped
+  client-side to each kind's native op: Chore/Event support all three; a Habit is
+  done-or-not, so `done`/`dropped` map to mark-done/mark-not-done and
+  `in_progress` is a no-op. The old standalone clear/undo ops fold into
+  `dropped` — exactly for a Habit (clear == mark-not-done, both reset the
+  occurrence), but for an Event `dropped` writes a terminal *Dropped* status, NOT
+  the old `delete_event_occurrence` row-erase (the clean revert to *Scheduled*),
+  which is intentionally dropped from the surface — re-mark to change it.
+  Reschedule is live for Events; Chore/Habit return 501 today (legacy storage).
+- **Wire mapping (verified against `Deferno/backend/src/payloads.rs` + deferno-kmp
+  `CreatePayloadSerializationTest`):** `time_of_day` maps to `start_time_of_day`
+  for an Event and `deadline_time_of_day` for Task/Chore/Habit; `complete_by` is
+  a caller-supplied full datetime passed through verbatim (required for an Event
+  and a recurring Chore/Habit — the backend's `/chores` and `/habits` reject its
+  absence — optional only for a one-off Task), exactly as
+  `create_task`/`create_event` already require — the MCP does no timezone
+  resolution (it has no ambient user tz; the backend keys off `complete_by`'s
+  local date in the user's stored tz). The "split date + time_of_day" idea was
+  dropped once the server-side tz cost surfaced; the bare-`date` form remains
+  appropriate for device clients (deferno-kmp) that have the device tz.
+- **Canonical-contract scope:** the cross-repo golden vectors
+  (`tests/spec/capture/vectors.json`) pin the kind-derivation tree + field
+  routing. The vectors are canonical **pending the KMP amend** — `deferno-kmp`'s
+  `CaptureInput` still carries the rejected `occursAtSetTime`; reconciling it is
+  the follow-on in that repo.
+- **Parenting a non-Task capture:** `capture_item` omits `parent_id` (a Task-only
+  create field), and `create_task`'s `parent_id` only makes Tasks. To place a
+  captured Chore/Habit/Event under a parent, capture it then `move_item` it (the
+  kind-neutral `POST /items/{id}/move`, which replaced the Task-only `move_task`).

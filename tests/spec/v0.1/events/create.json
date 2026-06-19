@@ -29,6 +29,6 @@
   ],
   "client_method": "create_event",
   "client_args_from_example": ["title", "complete_by"],
-  "mcp_tool": "create_event",
-  "mcp_tool_args_from_example": ["title", "complete_by"]
+  "mcp_tool": null,
+  "mcp_tool_args_from_example": []
 }

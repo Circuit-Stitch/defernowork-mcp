@@ -80,8 +80,8 @@ async def test_error_envelope_raises_with_code(client: DefernoClient):
 @pytest.mark.asyncio
 async def test_204_passes_through_unchanged(client: DefernoClient):
     """204 No Content has no body to unwrap; behavior is unchanged."""
-    respx.post(f"{BASE}/tasks/plan/add").respond(204)
-    result = await client.add_to_plan("some-id")
+    respx.post(f"{BASE}/items/plan/add").respond(204)
+    result = await client.add_to_items_plan("some-id")
     assert result is None
 
 

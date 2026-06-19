@@ -1,5 +1,8 @@
 
 
 *.pyc
+__pycache__/
+.venv/
+measure/
 tests/e2e-bottle/.env.e2e
 tests/e2e-bottle/artifacts/

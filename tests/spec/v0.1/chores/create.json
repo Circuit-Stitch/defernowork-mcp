@@ -29,6 +29,6 @@
   ],
   "client_method": "create_chore",
   "client_args_from_example": ["title"],
-  "mcp_tool": "create_chore",
-  "mcp_tool_args_from_example": ["title"]
+  "mcp_tool": null,
+  "mcp_tool_args_from_example": []
 }

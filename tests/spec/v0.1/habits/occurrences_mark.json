@@ -24,6 +24,6 @@
   ],
   "client_method": "mark_habit_occurrence",
   "client_args_from_example": ["done", "date"],
-  "mcp_tool": "mark_habit_occurrence",
+  "mcp_tool": null,
   "mcp_tool_args_from_example": ["done", "date"]
 }

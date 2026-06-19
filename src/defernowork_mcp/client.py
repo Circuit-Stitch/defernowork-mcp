@@ -246,25 +246,16 @@ class DefernoClient:
     async def fold_task(self, task_id: str, payload: dict[str, Any]) -> dict[str, Any]:
         return await self._request("POST", f"/tasks/{task_id}/fold", json_body=payload)
 
-    async def move_task(
-        self, task_id: str, new_parent_id: str | None, position: int | None = None
+    async def move_item(
+        self, item_id: str, new_parent_id: str | None, position: int | None = None
     ) -> dict[str, Any]:
         body: dict[str, Any] = {"new_parent_id": new_parent_id}
         if position is not None:
             body["position"] = position
-        return await self._request("POST", f"/tasks/{task_id}/move", json_body=body)
+        return await self._request("POST", f"/items/{item_id}/move", json_body=body)
 
     async def batch(self, operations: list[dict[str, Any]]) -> dict[str, Any]:
         return await self._request("POST", "/tasks/batch", json_body={"operations": operations})
-
-    async def get_calendar_events(
-        self, start: str, end: str, tz: str | None = None
-    ) -> list[dict[str, Any]]:
-        params = [f"start={start}", f"end={end}"]
-        if tz is not None:
-            params.append(f"tz={quote(tz, safe='')}")
-        query = "?" + "&".join(params)
-        return await self._request("GET", f"/tasks/calendar{query}")
 
     # -------------------------------------------------------------- daily plan
     async def get_daily_plan(
@@ -278,68 +269,12 @@ class DefernoClient:
         query = "?" + "&".join(params) if params else ""
         return await self._request("GET", f"/tasks/plan{query}")
 
-    async def add_to_plan(self, task_id: str, date: str | None = None) -> None:
-        body: dict[str, Any] = {"task_id": task_id}
-        if date:
-            body["date"] = date
-        await self._request("POST", "/tasks/plan/add", json_body=body)
-
-    async def remove_from_plan(self, task_id: str, date: str | None = None) -> None:
-        body: dict[str, Any] = {"task_id": task_id}
-        if date:
-            body["date"] = date
-        await self._request("POST", "/tasks/plan/remove", json_body=body)
-
-    async def reorder_plan(self, task_ids: list[str], date: str | None = None) -> None:
-        body: dict[str, Any] = {"task_ids": task_ids}
-        if date:
-            body["date"] = date
-        await self._request("POST", "/tasks/plan/reorder", json_body=body)
-
     async def mood_history(self) -> list[dict[str, Any]]:
         return await self._request("GET", "/tasks/mood-history")
 
     async def export_data(self) -> dict[str, Any]:
         """Export all user data."""
         return await self._request("GET", "/tasks/export")
-
-    # ------------------------------------------------- task attachments (PR-F)
-    async def presign_task_attachments(
-        self, task_id: str, files: list[dict[str, Any]]
-    ) -> dict[str, Any]:
-        return await self._request(
-            "POST",
-            f"/tasks/{task_id}/attachments/presign",
-            json_body={"files": files},
-        )
-
-    async def commit_task_attachments(
-        self,
-        task_id: str,
-        intents: list[str] | None = None,
-        urls: list[dict[str, Any]] | None = None,
-    ) -> list[dict[str, Any]]:
-        body: dict[str, Any] = {}
-        if intents:
-            body["intents"] = intents
-        if urls:
-            body["urls"] = urls
-        return await self._request(
-            "POST",
-            f"/tasks/{task_id}/attachments",
-            json_body=body,
-        )
-
-    async def list_task_attachments(self, task_id: str) -> list[dict[str, Any]]:
-        return await self._request("GET", f"/tasks/{task_id}/attachments")
-
-    async def delete_task_attachment(
-        self, task_id: str, attachment_id: str
-    ) -> None:
-        await self._request(
-            "DELETE",
-            f"/tasks/{task_id}/attachments/{attachment_id}",
-        )
 
     # ----------------------------------------------------------------- chores
     async def create_chore(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -417,9 +352,6 @@ class DefernoClient:
             "POST", f"/habits/{habit_id}/occurrences", json_body=body
         )
 
-    async def clear_habit_occurrence(self, habit_id: str, date: str) -> None:
-        await self._request("DELETE", f"/habits/{habit_id}/occurrences/{date}")
-
     # ----------------------------------------------------------------- events
     async def create_event(self, payload: dict[str, Any]) -> dict[str, Any]:
         return await self._request("POST", "/events", json_body=payload)
@@ -459,12 +391,6 @@ class DefernoClient:
             "POST",
             f"/events/{event_id}/occurrences/{date}",
             json_body=body,
-        )
-
-    async def delete_event_occurrence(self, event_id: str, date: str) -> None:
-        await self._request(
-            "DELETE",
-            f"/events/{event_id}/occurrences/{date}",
         )
 
     async def reschedule_event_occurrence(

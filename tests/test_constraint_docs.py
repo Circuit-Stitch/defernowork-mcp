@@ -21,16 +21,17 @@ import pytest
 from defernowork_mcp import server as srv
 
 # All create/update tools that take a bounded ``recurrence``.
+# create_chore/habit/event were folded into capture_item (ADR-0003).
 RECURRENCE_TOOLS = [
-    "create_event",
     "update_event",
-    "create_chore",
     "update_chore",
-    "create_habit",
     "update_habit",
+    "capture_item",
 ]
-# Tools that take an event ``end_time``.
-EVENT_TOOLS = ["create_event", "update_event"]
+# Tools that take an event ``end_time``. create_event was removed (ADR-0003);
+# capture_item carries no end_time (set via update_event), so only update_event
+# documents the end_time >= complete_by constraint on the surface now.
+EVENT_TOOLS = ["update_event"]
 
 # Stable substrings — phrasing may evolve but these anchors must remain.
 RECURRENCE_END_PHRASE = "on or after the series start"

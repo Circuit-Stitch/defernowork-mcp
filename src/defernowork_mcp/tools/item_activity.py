@@ -1,7 +1,7 @@
 """Kind-neutral item-level comment + attachment tools (issue #12).
 
-The per-kind tools (``post_event_occurrence_comment``, ``*_task_attachments``,
-…) require the caller to know an item's kind and address an occurrence. These
+The per-kind Event-occurrence tools (``post_event_occurrence_comment`` …)
+require the caller to know an item's kind and address an occurrence. These
 tools are the *kind-neutral* surface: comment on / attach to a **Task, Chore,
 or Habit** by any reference form, hitting ``/items/{id}/...``. The caller never
 addresses occurrences — for recurring kinds the backend routes the write to the
@@ -49,9 +49,7 @@ def register(
         Works for **Task, Chore, and Habit**. **Not for Events** — the backend
         rejects an Event here with a 400; use ``post_event_occurrence_comment``.
 
-        ``item_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the call.
+        ``item_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
 
         For a recurring Chore/Habit the comment is routed server-side to the
         current actionable occurrence; the caller does not address occurrences.
@@ -70,9 +68,7 @@ def register(
     async def list_item_comments(item_id: str, ctx: Context = None) -> str:
         """List an item's comments by reference (kind-neutral).
 
-        ``item_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the call.
+        ``item_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
 
         Returns the aggregated item-level Activity timeline. For a recurring
         Chore/Habit, entries from every occurrence are folded in (each tagged
@@ -97,9 +93,7 @@ def register(
         Works for **Task, Chore, and Habit**. **Not for Events** — the backend
         rejects an Event here with a 400; use the per-occurrence Event tools.
 
-        ``item_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the call.
+        ``item_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
 
         ``files`` is a list of ``{filename, content_type, size_bytes}`` records.
         The server enforces a 25 MB per-file cap and a blocked-MIME list.
@@ -126,9 +120,7 @@ def register(
         Works for **Task, Chore, and Habit**. **Not for Events** — the backend
         rejects an Event here with a 400; use the per-occurrence Event tools.
 
-        ``item_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the call.
+        ``item_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
 
         ``intents`` is a list of attachment_ids from a prior presign call whose
         blobs have been PUT. ``urls`` is a list of ``{url, filename?}`` entries
@@ -147,9 +139,7 @@ def register(
     async def list_item_attachments(item_id: str, ctx: Context = None) -> str:
         """List an item's attachments by reference (kind-neutral).
 
-        ``item_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the call.
+        ``item_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
 
         Returns the AttachmentView shape
         ``{id, provider, filename, mime, size, created_at, created_by, url,
@@ -172,9 +162,7 @@ def register(
     ) -> str:
         """Delete a single attachment from an item (kind-neutral).
 
-        ``item_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the call. ``att_id`` is an attachment
+        ``item_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions). ``att_id`` is an attachment
         id (not an item reference) and is passed through unresolved.
 
         Returns ``{"ok": true}`` on success.
@@ -196,9 +184,7 @@ def register(
     ) -> str:
         """Set or clear an item attachment's caption (kind-neutral).
 
-        ``item_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the call. ``att_id`` is an attachment
+        ``item_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions). ``att_id`` is an attachment
         id (not an item reference) and is passed through unresolved.
 
         Pass a string to set/change the caption (max 500 characters), or
