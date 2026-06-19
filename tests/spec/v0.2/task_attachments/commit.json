@@ -39,8 +39,8 @@
       ]
     }
   ],
-  "client_method": "commit_task_attachments",
-  "client_args_from_example": ["intents"],
+  "client_method": null,
+  "client_args_from_example": [],
   "mcp_tool": null,
   "mcp_tool_args_from_example": [],
   "notes": "Mixes presigned-and-uploaded intents (s3) with url-provider entries in one call. 400 if both lists empty."
