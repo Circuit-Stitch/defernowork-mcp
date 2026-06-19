@@ -111,7 +111,7 @@ encodes as *carries-forward* (Chore) vs *lapses* (Habit).
 | `create_task`         | Create a new task (optionally nested under a parent)        |
 | `update_task`         | Patch any mutable field (title, description, status, mood…) |
 | `set_task_status`     | Convenience wrapper for `open`/`in-progress`/`done`/…       |
-| `move_task`           | Reparent or reorder a task in the hierarchy                 |
+| `move_item`           | Reparent or reorder any item (Task/Chore/Habit/Event)       |
 | `split_task`          | Decompose a task into two child tasks                       |
 | `fold_task`           | Insert a next-step task into the sibling chain              |
 | `merge_task`          | Roll a parent's active children back into the parent        |

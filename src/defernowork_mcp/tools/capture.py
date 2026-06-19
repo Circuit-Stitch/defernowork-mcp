@@ -58,8 +58,10 @@ def register(
         the series start (``complete_by``'s local calendar date) -- same-day is
         allowed.
 
-        This is the single create front door. For a subtask under a parent, a
-        ``desire`` score, or sequence chains, use ``create_task``. Advanced
+        This is the single create front door. For a Task subtask under a parent,
+        a ``desire`` score, or sequence chains, use ``create_task``; to parent a
+        captured Chore/Habit/Event, capture it then ``move_item`` it under the
+        parent (``create_task``'s ``parent_id`` only makes Tasks). Advanced
         recurring-kind fields (``end_time``, ``cadence_mode``,
         ``subtask_template``, a recurrence ``end``) are a follow-up ``update_*``
         after capture.

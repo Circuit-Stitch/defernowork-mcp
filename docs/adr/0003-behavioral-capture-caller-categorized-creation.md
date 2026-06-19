@@ -150,3 +150,7 @@ authority for the kind semantics the tree encodes (Deferno #231).
   routing. The vectors are canonical **pending the KMP amend** — `deferno-kmp`'s
   `CaptureInput` still carries the rejected `occursAtSetTime`; reconciling it is
   the follow-on in that repo.
+- **Parenting a non-Task capture:** `capture_item` omits `parent_id` (a Task-only
+  create field), and `create_task`'s `parent_id` only makes Tasks. To place a
+  captured Chore/Habit/Event under a parent, capture it then `move_item` it (the
+  kind-neutral `POST /items/{id}/move`, which replaced the Task-only `move_task`).

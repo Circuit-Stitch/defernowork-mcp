@@ -254,6 +254,14 @@ class DefernoClient:
             body["position"] = position
         return await self._request("POST", f"/tasks/{task_id}/move", json_body=body)
 
+    async def move_item(
+        self, item_id: str, new_parent_id: str | None, position: int | None = None
+    ) -> dict[str, Any]:
+        body: dict[str, Any] = {"new_parent_id": new_parent_id}
+        if position is not None:
+            body["position"] = position
+        return await self._request("POST", f"/items/{item_id}/move", json_body=body)
+
     async def batch(self, operations: list[dict[str, Any]]) -> dict[str, Any]:
         return await self._request("POST", "/tasks/batch", json_body={"operations": operations})
 

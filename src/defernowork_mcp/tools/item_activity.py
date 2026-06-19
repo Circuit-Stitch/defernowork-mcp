@@ -1,7 +1,7 @@
 """Kind-neutral item-level comment + attachment tools (issue #12).
 
-The per-kind tools (``post_event_occurrence_comment``, ``*_task_attachments``,
-…) require the caller to know an item's kind and address an occurrence. These
+The per-kind Event-occurrence tools (``post_event_occurrence_comment`` …)
+require the caller to know an item's kind and address an occurrence. These
 tools are the *kind-neutral* surface: comment on / attach to a **Task, Chore,
 or Habit** by any reference form, hitting ``/items/{id}/...``. The caller never
 addresses occurrences — for recurring kinds the backend routes the write to the

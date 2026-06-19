@@ -327,3 +327,30 @@ def register(
             except DefernoError as exc:
                 return format_error(exc)
         return json.dumps({"ok": True})
+
+    @mcp.tool()
+    async def move_item(
+        item_id: str,
+        new_parent_id: str | None = None,
+        position: int | None = None,
+        ctx: Context = None,
+    ) -> str:
+        """Move any item (Task / Chore / Habit / Event) to a new parent or reorder it.
+
+        Kind-neutral reparent/reorder via ``/items/{id}/move`` — works for every
+        kind, so it is also how you parent a Chore/Habit/Event created with
+        ``capture_item``. ``item_id`` and ``new_parent_id`` each accept any item
+        ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
+        ``new_parent_id=None`` detaches to a root (kept as-is, not resolved);
+        ``position`` is the insertion index in the target's children (0 = first;
+        omit to append).
+        """
+        async with (await get_client(ctx=ctx)) as client:
+            try:
+                item_id = await resolve_ref(client, item_id)
+                if new_parent_id is not None:
+                    new_parent_id = await resolve_ref(client, new_parent_id)
+                result = await client.move_item(item_id, new_parent_id, position)
+            except DefernoError as exc:
+                return format_error(exc)
+        return json.dumps(result)

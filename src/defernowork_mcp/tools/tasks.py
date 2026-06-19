@@ -182,31 +182,6 @@ def register(
         return json.dumps(task)
 
     @mcp.tool()
-    async def move_task(
-        task_id: str,
-        new_parent_id: str | None = None,
-        position: int | None = None,
-        ctx: Context = None,
-    ) -> str:
-        """Move a task to a different parent or reorder within its current parent.
-
-        ``task_id`` and ``new_parent_id`` each accept any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
-
-        ``new_parent_id=None`` detaches the task to root level (kept as-is, not
-        resolved). ``position`` is the insertion index in the target's children
-        list (0 = first). Omit to append at end.
-        """
-        async with (await get_client(ctx=ctx)) as client:
-            try:
-                task_id = await resolve_ref(client, task_id)
-                if new_parent_id is not None:
-                    new_parent_id = await resolve_ref(client, new_parent_id)
-                task = await client.move_task(task_id, new_parent_id, position)
-            except DefernoError as exc:
-                return format_error(exc)
-        return json.dumps(task)
-
-    @mcp.tool()
     async def split_task(
         task_id: str,
         first_title: str,
