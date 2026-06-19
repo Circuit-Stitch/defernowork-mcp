@@ -49,7 +49,7 @@ def register(
         Works for **Task, Chore, and Habit**. **Not for Events** — the backend
         rejects an Event here with a 400; use ``post_event_occurrence_comment``.
 
-        ``item_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
+        ``item_id`` accepts any item ref.
 
         For a recurring Chore/Habit the comment is routed server-side to the
         current actionable occurrence; the caller does not address occurrences.
@@ -68,7 +68,7 @@ def register(
     async def list_item_comments(item_id: str, ctx: Context = None) -> str:
         """List an item's comments by reference (kind-neutral).
 
-        ``item_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
+        ``item_id`` accepts any item ref.
 
         Returns the aggregated item-level Activity timeline. For a recurring
         Chore/Habit, entries from every occurrence are folded in (each tagged
@@ -93,7 +93,7 @@ def register(
         Works for **Task, Chore, and Habit**. **Not for Events** — the backend
         rejects an Event here with a 400; use the per-occurrence Event tools.
 
-        ``item_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
+        ``item_id`` accepts any item ref.
 
         ``files`` is a list of ``{filename, content_type, size_bytes}`` records.
         The server enforces a 25 MB per-file cap and a blocked-MIME list.
@@ -120,7 +120,7 @@ def register(
         Works for **Task, Chore, and Habit**. **Not for Events** — the backend
         rejects an Event here with a 400; use the per-occurrence Event tools.
 
-        ``item_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
+        ``item_id`` accepts any item ref.
 
         ``intents`` is a list of attachment_ids from a prior presign call whose
         blobs have been PUT. ``urls`` is a list of ``{url, filename?}`` entries
@@ -139,7 +139,7 @@ def register(
     async def list_item_attachments(item_id: str, ctx: Context = None) -> str:
         """List an item's attachments by reference (kind-neutral).
 
-        ``item_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
+        ``item_id`` accepts any item ref.
 
         Returns the AttachmentView shape
         ``{id, provider, filename, mime, size, created_at, created_by, url,
@@ -162,7 +162,7 @@ def register(
     ) -> str:
         """Delete a single attachment from an item (kind-neutral).
 
-        ``item_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions). ``att_id`` is an attachment
+        ``item_id`` accepts any item ref. ``att_id`` is an attachment
         id (not an item reference) and is passed through unresolved.
 
         Returns ``{"ok": true}`` on success.
@@ -184,7 +184,7 @@ def register(
     ) -> str:
         """Set or clear an item attachment's caption (kind-neutral).
 
-        ``item_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions). ``att_id`` is an attachment
+        ``item_id`` accepts any item ref. ``att_id`` is an attachment
         id (not an item reference) and is passed through unresolved.
 
         Pass a string to set/change the caption (max 500 characters), or

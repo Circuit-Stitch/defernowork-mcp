@@ -29,6 +29,6 @@
   ],
   "client_method": "update_chore",
   "client_args_from_example": [],
-  "mcp_tool": "update_chore",
+  "mcp_tool": null,
   "mcp_tool_args_from_example": ["title"]
 }

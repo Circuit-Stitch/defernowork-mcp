@@ -51,9 +51,9 @@ def register(
     ) -> str:
         """List derived occurrences for a recurring item (Chore / Habit / Event).
 
-        ``ref`` is any item ref (UUID / ``#123`` / ``acme-123`` / app URL) — see
-        the server instructions; the item's kind is resolved from it and the call
-        dispatches to the matching backend. ``from_date`` / ``to_date`` are
+        ``ref`` is any item ref — see the server instructions; the item's kind is
+        resolved from it and the call dispatches to the matching backend.
+        ``from_date`` / ``to_date`` are
         ``YYYY-MM-DD`` (inclusive). Returns the unified-Occurrence shape (id,
         scheduled_date, status, ...).
         """

@@ -47,9 +47,7 @@ from .tools import (
     register_comments,
     register_daily_plan,
     register_event_occurrences,
-    register_events,
     register_feedback,
-    register_habits,
     register_item_activity,
     register_items,
     register_occurrences,
@@ -271,8 +269,9 @@ def create_server(http_transport: bool = False) -> FastMCP:
         "To create any item, use `capture_item`: answer how it behaves "
         "(`attend`? `repeats`? `obligation` need-vs-want) and the server derives "
         "Task / Chore / Habit / Event. Use `create_task` directly only for a "
-        "subtask under a parent, a `desire` score, or sequence chains; `update_*` "
-        "edits an existing item. Use "
+        "subtask under a parent, a `desire` score, or sequence chains. "
+        "`update_item` edits any existing item and `delete_item` removes it "
+        "(both take any item reference and resolve its kind for you). Use "
         "`split_task` to decompose a task into two subtasks, `fold_task` to insert "
         "a next-step task in a sequence, and `merge_task` to roll active children "
         "back into their parent. "
@@ -288,13 +287,12 @@ def create_server(http_transport: bool = False) -> FastMCP:
         "a Compact projection by default (a small whitelist of fields; the heavy "
         "`description`/body is included on a single-item `get_item` but dropped "
         "from list rows) — pass `full=true` for the complete record. "
-        "To comment on or attach files to a Task, Chore, or Habit, use the "
+        "To comment on or attach files to a Task, Chore, Habit, or Event, use the "
         "kind-neutral item-level tools — `post_item_comment` / "
         "`list_item_comments` and `presign_item_attachments` / "
         "`commit_item_attachments` / `list_item_attachments` / "
         "`delete_item_attachment` / `set_item_attachment_caption` — which take "
-        "any item reference. Events are the exception: comment on / attach to a "
-        "specific Event occurrence with the `*_event_occurrence_*` tools."
+        "any item reference."
     )
 
     mcp = FastMCP(
@@ -308,15 +306,13 @@ def create_server(http_transport: bool = False) -> FastMCP:
     register_auth(mcp, _get_client_async, _get_anon_client, _format_error, _compact, _UNSET)
     register_tasks(mcp, _get_client_async, _format_error, _compact, _UNSET)
     register_capture(mcp, _get_client_async, _format_error)
-    register_chores(mcp, _get_client_async, _format_error, _compact, _UNSET)
-    register_habits(mcp, _get_client_async, _format_error, _compact, _UNSET)
-    register_events(mcp, _get_client_async, _format_error, _compact, _UNSET)
+    register_chores(mcp, _get_client_async, _format_error)
     register_event_occurrences(mcp, _get_client_async, _format_error)
     register_occurrences(mcp, _get_client_async, _format_error)
     register_comments(mcp, _get_client_async, _format_error, _compact, _UNSET)
     register_saved_searches(mcp, _get_client_async, _format_error, _compact, _UNSET)
     register_feedback(mcp, _get_client_async, _format_error, _compact, _UNSET)
-    register_items(mcp, _get_client_async, _format_error)
+    register_items(mcp, _get_client_async, _format_error, _compact, _UNSET)
     register_item_activity(mcp, _get_client_async, _format_error)
     register_pinned(mcp, _get_client_async, _format_error)
     register_daily_plan(mcp, _get_client_async, _format_error)

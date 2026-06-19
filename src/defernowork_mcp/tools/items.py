@@ -1,18 +1,28 @@
-"""Cross-kind item tools: calendar + plan over Tasks/Habits/Chores/Events."""
+"""Cross-kind item tools: kind-neutral mutate/delete, calendar + plan."""
 
 from __future__ import annotations
 
 import json
-from typing import Awaitable, Callable
+from typing import Annotated, Any, Awaitable, Callable
 
 from mcp.server.fastmcp import Context, FastMCP
+from pydantic import Field
 
 from ..client import DefernoClient, DefernoError
+from ..constraints import EVENT_END_TIME_DESC, RECURRENCE_END_DESC
 from ..refs import (
     COMPACT_ITEM_CORE_FIELDS,
     COMPACT_ITEM_FIELDS,
     project,
     resolve_ref,
+    resolve_ref_with_kind,
+)
+
+# Fields update_item accepts that apply to a Task only; the rest (title,
+# description, complete_by, labels, recurrence) are shared across all kinds.
+_TASK_ONLY_FIELDS = frozenset(
+    {"status", "assignee", "productive", "desire",
+     "recurring_scope", "recurrence_id", "recurring_type"}
 )
 
 
@@ -20,7 +30,155 @@ def register(
     mcp: FastMCP,
     get_client: Callable[..., Awaitable[DefernoClient]],
     format_error: Callable[[DefernoError], str],
+    compact: Callable[[dict[str, Any]], dict[str, Any]],
+    unset: object,
 ) -> None:
+    @mcp.tool()
+    async def update_item(
+        ref: str,
+        title: str | None = unset,
+        description: str | None = unset,
+        complete_by: str | None = unset,
+        labels: list[str] | None = unset,
+        recurrence: Annotated[
+            dict[str, Any] | None, Field(description=RECURRENCE_END_DESC)
+        ] = unset,
+        status: str | None = unset,
+        assignee: str | None = unset,
+        productive: float | None = unset,
+        desire: float | None = unset,
+        recurring_scope: str | None = unset,
+        recurrence_id: str | None = unset,
+        recurring_type: str | None = unset,
+        end_time: Annotated[
+            str | None, Field(description=EVENT_END_TIME_DESC)
+        ] = unset,
+        ctx: Context = None,
+    ) -> str:
+        """Patch mutable fields on any item (Task / Chore / Habit / Event).
+
+        ``ref`` is any item ref (see the server instructions on identifiers); the
+        kind is resolved from it and the call dispatches to the matching backend.
+        Omitting a parameter leaves it unchanged; pass ``None`` to clear it (e.g.
+        ``complete_by=None`` drops a Task deadline — a Chore's ``complete_by``
+        cannot be cleared).
+
+        Shared fields (all kinds): ``title``, ``description``, ``complete_by``,
+        ``labels``, ``recurrence``. If ``recurrence`` carries an ``end`` of
+        ``{type: on_date, date}``, that date must be on or after the series start
+        (``complete_by``'s local calendar date); same-day is allowed.
+
+        **Task-only**: ``status`` (one of ``open``, ``in-progress``,
+        ``in-review``, ``done``, ``dropped``, ``pruned`` — the backend rejects
+        completing a task with active children), ``assignee``, ``productive`` /
+        ``desire`` (floats in [0, 1]), and the recurring-Task controls
+        ``recurring_scope`` / ``recurrence_id`` / ``recurring_type``. For a
+        recurring Task, changing ``title``/``description``/``labels``/
+        ``complete_by`` requires ``recurring_scope`` — ``"this"`` (single
+        instance), ``"following"`` (this and future), or ``"all"`` (series);
+        ``"this"`` / ``"following"`` also need ``recurrence_id`` (the instance's
+        ISO start). If scope is missing the call returns a message asking for it.
+
+        **Event-only**: ``end_time`` — when provided it must be on or after
+        ``complete_by`` (the Event start), else the backend rejects it with a 400.
+
+        To change a recurring Chore/Habit/Event *occurrence* (mark it done,
+        skip, reschedule) use the occurrence tools, not this.
+        """
+        provided = {
+            k
+            for k, v in {
+                "title": title, "description": description,
+                "complete_by": complete_by, "labels": labels,
+                "recurrence": recurrence, "status": status,
+                "assignee": assignee, "productive": productive,
+                "desire": desire, "recurring_scope": recurring_scope,
+                "recurrence_id": recurrence_id, "recurring_type": recurring_type,
+                "end_time": end_time,
+            }.items()
+            if v is not unset
+        }
+        async with (await get_client(ctx=ctx)) as client:
+            try:
+                uuid, kind = await resolve_ref_with_kind(client, ref)
+                # Reject fields that don't apply to the resolved kind, before any
+                # write (trust boundary) — mirrors capture_item's create path.
+                if kind != "task":
+                    bad = sorted(_TASK_ONLY_FIELDS & provided)
+                    if bad:
+                        return (
+                            f"update_item: {', '.join(bad)} apply only to a Task "
+                            f"(this is a {kind}); use the occurrence tools to act "
+                            "on a recurring occurrence"
+                        )
+                if kind != "event" and "end_time" in provided:
+                    return f"update_item: end_time applies only to an Event (this is a {kind})"
+
+                payload = compact({
+                    "title": title, "description": description,
+                    "complete_by": complete_by, "labels": labels,
+                    "recurrence": recurrence, "status": status,
+                    "assignee": assignee, "productive": productive,
+                    "desire": desire, "recurring_scope": recurring_scope,
+                    "recurrence_id": recurrence_id, "recurring_type": recurring_type,
+                    "end_time": end_time,
+                })
+
+                if kind == "task":
+                    # Recurring-Task scope guard: a deferno-field change with no
+                    # scope on a series-backed task is ambiguous — ask first.
+                    if recurring_scope is unset:
+                        deferno_fields = {"title", "description", "labels", "complete_by"}
+                        if any(k in payload for k in deferno_fields):
+                            task_data = await client.get_task(uuid)
+                            if task_data.get("series_id"):
+                                return (
+                                    "This is a recurring task. Please specify "
+                                    "recurring_scope: 'this' (single instance), "
+                                    "'following' (this and future events), or "
+                                    "'all' (entire series). "
+                                    "Ask the user which option they prefer."
+                                )
+                    result = await client.update_task(uuid, payload)
+                elif kind == "chore":
+                    result = await client.update_chore(uuid, payload)
+                elif kind == "habit":
+                    result = await client.update_habit(uuid, payload)
+                elif kind == "event":
+                    result = await client.update_event(uuid, payload)
+                else:
+                    return f"update_item: cannot update a {kind}"
+            except DefernoError as exc:
+                return format_error(exc)
+        return json.dumps(result)
+
+    @mcp.tool()
+    async def delete_item(ref: str, ctx: Context = None) -> str:
+        """Delete any item (Task / Chore / Habit / Event) by reference.
+
+        ``ref`` is any item ref (see the server instructions). The kind is
+        resolved from it and the call dispatches to the matching backend. Note
+        the kinds differ: a **Task** is hard-deleted, while a **Chore / Habit /
+        Event** is archived (soft-delete). Returns the resolved ``id`` and
+        ``kind`` the deletion ran against.
+        """
+        async with (await get_client(ctx=ctx)) as client:
+            try:
+                uuid, kind = await resolve_ref_with_kind(client, ref)
+                if kind == "task":
+                    await client.delete_task(uuid)
+                elif kind == "chore":
+                    await client.delete_chore(uuid)
+                elif kind == "habit":
+                    await client.delete_habit(uuid)
+                elif kind == "event":
+                    await client.delete_event(uuid)
+                else:
+                    return f"delete_item: cannot delete a {kind}"
+            except DefernoError as exc:
+                return format_error(exc)
+        return json.dumps({"deleted": True, "id": uuid, "kind": kind})
+
     @mcp.tool()
     async def get_item(
         item: str,
@@ -30,8 +188,8 @@ def register(
     ) -> str:
         """Fetch a single item (Task / Habit / Chore / Event) by any reference.
 
-        ``item`` is any item ref (UUID / ``#123`` / ``acme-123`` / app URL),
-        resolved transparently — see the server instructions on identifiers. The
+        ``item`` is any item ref, resolved transparently — see the server
+        instructions on identifiers. The
         unambiguous GitHub form ``owner/repo#N`` auto-routes to by-alias; for an
         ambiguous external alias (e.g. ``ABC-223``) pass ``as_alias=true`` to
         force the by-alias lookup. (A bare ``#N`` always means a Deferno sequence
@@ -142,8 +300,7 @@ def register(
             label: Filter by label tag.
             from_date: Filter items due on or after this ISO 8601 date.
             to_date: Filter items due on or before this ISO 8601 date.
-            parent_id: Scope search to children of this item — any item ref
-                (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
+            parent_id: Scope search to children of this item — any item ref.
             full: When ``true``, return every field on each row (no projection).
         """
         async with (await get_client(ctx=ctx)) as client:
@@ -209,8 +366,7 @@ def register(
     ) -> str:
         """Add an item (any kind) to the daily plan.
 
-        ``task_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app
-        URL; see instructions), so a ``ref`` from ``list_items`` works directly.
+        ``task_id`` accepts any item ref, so a ``ref`` from ``list_items`` works directly.
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
@@ -228,7 +384,7 @@ def register(
     ) -> str:
         """Remove an item from the daily plan.
 
-        ``task_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
+        ``task_id`` accepts any item ref.
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
@@ -246,7 +402,7 @@ def register(
     ) -> str:
         """Replace the daily plan ordering with the given full list of IDs.
 
-        Each element of ``task_ids`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
+        Each element of ``task_ids`` accepts any item ref.
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
@@ -267,7 +423,7 @@ def register(
     ) -> str:
         """Convert an item to a different kind (Task / Chore / Habit / Event).
 
-        ``item_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
+        ``item_id`` accepts any item ref.
 
         ``to`` is one of ``"task"``, ``"chore"``, ``"habit"``, ``"event"`` --
         this is the backend wire field name (``ConvertItemPayload.to``).
@@ -295,7 +451,7 @@ def register(
     async def get_item_history(item_id: str, ctx: Context = None) -> str:
         """Return the change-history list for any item kind (Task/Habit/Chore/Event).
 
-        ``item_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
+        ``item_id`` accepts any item ref.
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
@@ -313,7 +469,7 @@ def register(
     ) -> str:
         """Pin or unpin a sidebar item (Task/Habit/Chore/Event).
 
-        ``item_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
+        ``item_id`` accepts any item ref.
 
         Backend body is ``{pinned: bool}`` -- the gap-closure plan's optional
         ``label`` argument is not part of this endpoint (custom pin labels
@@ -340,7 +496,7 @@ def register(
         Kind-neutral reparent/reorder via ``/items/{id}/move`` — works for every
         kind, so it is also how you parent a Chore/Habit/Event created with
         ``capture_item``. ``item_id`` and ``new_parent_id`` each accept any item
-        ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
+        ref.
         ``new_parent_id=None`` detaches to a root (kept as-is, not resolved);
         ``position`` is the insertion index in the target's children (0 = first;
         omit to append).

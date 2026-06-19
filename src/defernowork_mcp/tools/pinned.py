@@ -51,9 +51,8 @@ def register(
     ) -> str:
         """Replace the pinned-list ordering with ``task_ids``.
 
-        Each element of ``task_ids`` accepts any item ref (UUID / ``#123`` /
-        ``acme-123`` / app URL; see instructions; order preserved). The resolved
-        set must be an exact permutation of the user's
+        Each element of ``task_ids`` is any item ref (order preserved). The
+        resolved set must be an exact permutation of the user's
         current pinned set: extra ids, missing ids, or duplicates all 400. To
         add or remove an item, use ``set_item_pinned`` first, then reorder.
         Returns ``{"reordered": True, "count": N}`` on success.
