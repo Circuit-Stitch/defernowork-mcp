@@ -199,6 +199,58 @@ def _uuid_of(item: dict) -> str:
     return item["id"]
 
 
+def _kind_of(item: dict) -> str | None:
+    """Extract the item kind from a resolved payload, normalised to lowercase.
+
+    The wire is inconsistent: resolve endpoints emit lowercase ``kind``
+    (``"chore"``) while some entity responses capitalise it (``"Chore"``) and
+    others tag it under ``type``. Read either, lowercase it, so a kind-dispatcher
+    can branch on a stable value.
+    """
+    k = item.get("kind") or item.get("type")
+    return k.lower() if isinstance(k, str) else k
+
+
+async def resolve_ref_with_kind(
+    client: "DefernoClient", ref: str
+) -> tuple[str, str | None]:
+    """Resolve any **Ref input form** to ``(uuid, kind)`` (kind lowercased).
+
+    Like :func:`resolve_ref`, but also returns the item's kind so a kind-neutral
+    tool can dispatch to the right per-kind backend call. The one cost: a raw
+    **UUID** short-circuits :func:`resolve_ref` with no HTTP and therefore carries
+    no kind locally, so this helper issues one ``GET /items/{id}`` to discover it
+    (a non-UUID ref already learns the kind from its resolve round-trip, so it
+    costs nothing extra). A NOT_AUTO_ROUTED ref raises :class:`DefernoError` (400),
+    exactly as :func:`resolve_ref` does.
+    """
+    from .client import DefernoError
+
+    c = classify_ref(ref)
+
+    if c.form is RefForm.UUID or (c.form is RefForm.APP_URL and c.uuid is not None):
+        item = await client.get_item(c.uuid)  # type: ignore[arg-type]
+        return c.uuid, _kind_of(item)  # type: ignore[return-value]
+
+    if c.form is RefForm.SEQUENCE:
+        item = await client.get_item_by_sequence(c.sequence)  # type: ignore[arg-type]
+        return _uuid_of(item), _kind_of(item)
+
+    if c.form in (RefForm.CANONICAL, RefForm.APP_URL):
+        item = await client.get_item_by_ref(c.canonical)  # type: ignore[arg-type]
+        return _uuid_of(item), _kind_of(item)
+
+    if c.form is RefForm.ALIAS:
+        item = await client.get_item_by_alias(c.alias)  # type: ignore[arg-type]
+        return _uuid_of(item), _kind_of(item)
+
+    raise DefernoError(
+        400,
+        f"identifier {ref!r} is not an auto-routable Ref input form "
+        "(alias / ambiguous forms require the explicit alias lookup)",
+    )
+
+
 def _is_uuid(value: str) -> bool:
     try:
         UUID(value)
