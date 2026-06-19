@@ -42,6 +42,7 @@ from .credentials import load_credentials
 from .refs import COMPACT_ITEM_FIELDS, project, resolve_ref
 from .tools import (
     register_auth,
+    register_capture,
     register_chores,
     register_comments,
     register_daily_plan,
@@ -294,6 +295,7 @@ def create_server(http_transport: bool = False) -> FastMCP:
     # ── Register tool modules ─────────────────────────────────────
     register_auth(mcp, _get_client_async, _get_anon_client, _format_error, _compact, _UNSET)
     register_tasks(mcp, _get_client_async, _format_error, _compact, _UNSET)
+    register_capture(mcp, _get_client_async, _format_error)
     register_chores(mcp, _get_client_async, _format_error, _compact, _UNSET)
     register_habits(mcp, _get_client_async, _format_error, _compact, _UNSET)
     register_events(mcp, _get_client_async, _format_error, _compact, _UNSET)

@@ -1,6 +1,7 @@
 """Tool registration modules for the Deferno MCP server."""
 
 from .auth import register as register_auth
+from .capture import register as register_capture
 from .chores import register as register_chores
 from .comments import register as register_comments
 from .event_occurrences import register as register_event_occurrences
@@ -16,6 +17,7 @@ from .daily_plan import register as register_daily_plan
 
 __all__ = [
     "register_auth",
+    "register_capture",
     "register_chores",
     "register_comments",
     "register_event_occurrences",
