@@ -37,7 +37,7 @@
   ],
   "client_method": "list_event_occurrences",
   "client_args_from_example": ["from_date", "to_date"],
-  "mcp_tool": "list_event_occurrences",
+  "mcp_tool": null,
   "mcp_tool_args_from_example": ["from_date", "to_date"],
   "notes": "PR-D unified Occurrence shape -- id and parent_id are required, comment/attachments default to []. Query params from/to are RFC3339 dates (client kwargs from_date/to_date map to wire keys from/to)."
 }

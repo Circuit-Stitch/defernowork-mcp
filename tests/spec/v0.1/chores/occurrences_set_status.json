@@ -24,6 +24,6 @@
   ],
   "client_method": "set_chore_occurrence_status",
   "client_args_from_example": ["status"],
-  "mcp_tool": "set_chore_occurrence_status",
+  "mcp_tool": null,
   "mcp_tool_args_from_example": ["status"]
 }

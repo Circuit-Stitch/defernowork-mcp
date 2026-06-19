@@ -119,9 +119,18 @@ authority for the kind semantics the tree encodes (Deferno #231).
 - **Follow-ons (not decided here):** the `CONTEXT.md` glossary entries for the new
   vocabulary (*Behavioral capture*, *Kind derivation*, and the *Attendance /
   Recurrence / Need-vs-want* discriminators, each with an `_Avoid_` note — e.g.
-  avoid "occurs at a set time"); and the kind-neutral occurrence-tool collapse
-  (its addressing model — firing-id vs ref+date — and the Events-only reschedule
-  constraint are still open).
+  avoid "occurs at a set time").
+- **Resolved follow-on — kind-neutral occurrence collapse (`tools/occurrences.py`).**
+  The twelve per-kind occurrence tools collapsed to three (`list_occurrences`,
+  `set_occurrence_status`, `reschedule_occurrence`) plus the chore-specific
+  `mark_next_chore_done`. Addressing is **ref + date** (the kind is resolved from
+  the ref via `resolve_ref_with_kind`; a raw UUID pays one `GET /items/{id}`).
+  Status normalises to one enum — `in_progress` / `done` / `dropped` — mapped
+  client-side to each kind's native op: Chore/Event support all three; a Habit is
+  done-or-not, so `done`/`dropped` map to mark-done/mark-not-done and
+  `in_progress` is a no-op. The standalone clear/undo ops
+  (`clear_habit_occurrence` / `delete_event_occurrence`) fold into `dropped`.
+  Reschedule is live for Events; Chore/Habit return 501 today (legacy storage).
 - **Wire mapping (verified against `Deferno/backend/src/payloads.rs` + deferno-kmp
   `CreatePayloadSerializationTest`):** `time_of_day` maps to `start_time_of_day`
   for an Event and `deadline_time_of_day` for Task/Chore/Habit; `complete_by` is

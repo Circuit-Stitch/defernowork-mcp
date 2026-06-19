@@ -11,7 +11,7 @@
   ],
   "client_method": "delete_event_occurrence",
   "client_args_from_example": [],
-  "mcp_tool": "delete_event_occurrence",
+  "mcp_tool": null,
   "mcp_tool_args_from_example": [],
   "notes": "Clears the per-date row entirely (used to undo a mark)."
 }

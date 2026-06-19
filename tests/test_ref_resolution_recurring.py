@@ -3,9 +3,9 @@
 Part A's tests/test_ref_resolution_tasks.py carries the heavy per-form matrix. This
 file is the light per-file proof that the Part C tools are wired the same way:
 
-- chores.py: a non-UUID ``chore_id`` resolves before the occurrence op hits the
-  resolved-uuid path; a UUID short-circuits with no resolve HTTP.
-- habits.py: a non-UUID ``habit_id`` resolves before the op hits the resolved-uuid path.
+- chores.py / habits.py: a non-UUID ``chore_id`` / ``habit_id`` resolves before
+  the update/delete hits the resolved-uuid path; a UUID short-circuits with no
+  resolve HTTP. (Occurrence-tool ref resolution moved to test_occurrences.py.)
 - events.py: ``update_event`` / ``delete_event`` resolve ``event_id`` before acting.
 - A NOT_AUTO_ROUTED ref surfaces a clear error and issues NO operation.
 
@@ -57,36 +57,7 @@ async def _call(mcp, name, **kwargs):
     return await tool.fn(**kwargs)
 
 
-# ── chores.py: resolve chore_id, then hit the resolved-uuid occurrence path ───
-
-
-@respx.mock
-async def test_set_chore_occurrence_status_sequence_form_resolves_then_acts(server):
-    """``#123`` resolves via GET /items/by-seq/123, then PUTs /chores/{uuid}/occurrences/{date}."""
-    by_seq = respx.get(f"{BASE}/items/by-seq/123").mock(
-        return_value=httpx.Response(200, json=_env({"id": ITEM_UUID, "kind": "chore"}))
-    )
-    set_status = respx.put(
-        f"{BASE}/chores/{ITEM_UUID}/occurrences/2026-06-03"
-    ).mock(
-        return_value=httpx.Response(200, json=_env({"date": "2026-06-03", "status": "DoneOnTime"}))
-    )
-
-    result = await _call(
-        server,
-        "set_chore_occurrence_status",
-        chore_id="#123",
-        date="2026-06-03",
-        status="done",
-    )
-    out = json.loads(result)
-
-    assert by_seq.called and set_status.called
-    assert (
-        set_status.calls.last.request.url.path
-        == f"/api/chores/{ITEM_UUID}/occurrences/2026-06-03"
-    )
-    assert out["status"] == "DoneOnTime"
+# ── chores.py: resolve chore_id before the CRUD op (update/delete) ────────────
 
 
 @respx.mock
@@ -108,27 +79,25 @@ async def test_update_chore_uuid_form_no_resolve_http(server):
     assert out["id"] == ITEM_UUID
 
 
-# ── habits.py: resolve habit_id, then hit the resolved-uuid occurrence path ───
+# ── habits.py: resolve habit_id before the CRUD op (update/delete) ────────────
 
 
 @respx.mock
-async def test_mark_habit_occurrence_canonical_form_resolves_then_acts(server):
-    """``acme-123`` resolves via by-ref, then POSTs /habits/{uuid}/occurrences."""
+async def test_update_habit_canonical_form_resolves_then_patches(server):
+    """``acme-123`` resolves via by-ref, then PATCHes /habits/{uuid}."""
     by_ref = respx.get(f"{BASE}/items/by-ref/u-1y0e2v-123").mock(
         return_value=httpx.Response(200, json=_env({"id": ITEM_UUID, "kind": "habit"}))
     )
-    mark = respx.post(f"{BASE}/habits/{ITEM_UUID}/occurrences").mock(
-        return_value=httpx.Response(200, json=_env({"date": "2026-06-03", "done": True}))
+    patch = respx.patch(f"{BASE}/habits/{ITEM_UUID}").mock(
+        return_value=httpx.Response(200, json=_env({"id": ITEM_UUID, "kind": "Habit", "title": "x"}))
     )
 
-    result = await _call(
-        server, "mark_habit_occurrence", habit_id="u-1y0e2v-123", done=True, date="2026-06-03"
-    )
+    result = await _call(server, "update_habit", habit_id="u-1y0e2v-123", title="x")
     out = json.loads(result)
 
-    assert by_ref.called and mark.called
-    assert mark.calls.last.request.url.path == f"/api/habits/{ITEM_UUID}/occurrences"
-    assert out["done"] is True
+    assert by_ref.called and patch.called
+    assert patch.calls.last.request.url.path == f"/api/habits/{ITEM_UUID}"
+    assert out["id"] == ITEM_UUID
 
 
 # ── events.py: resolve event_id, then hit the resolved-uuid entity path ───────

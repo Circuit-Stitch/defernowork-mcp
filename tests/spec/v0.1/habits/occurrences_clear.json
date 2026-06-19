@@ -11,6 +11,6 @@
   ],
   "client_method": "clear_habit_occurrence",
   "client_args_from_example": [],
-  "mcp_tool": "clear_habit_occurrence",
+  "mcp_tool": null,
   "mcp_tool_args_from_example": []
 }

@@ -87,63 +87,6 @@ def register(
         return json.dumps({"deleted": True, "chore_id": chore_id})
 
     @mcp.tool()
-    async def list_chore_occurrences(
-        chore_id: str,
-        from_date: str | None = None,
-        to_date: str | None = None,
-        ctx: Context = None,
-    ) -> str:
-        """List derived occurrences for a chore in the given date window.
-
-        ``chore_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the lookup.
-
-        Each occurrence has a status: ``Scheduled``, ``Missed``,
-        ``InProgress``, ``Skipped``, ``DoneOnTime``, or ``DoneLate``.
-        Dates use YYYY-MM-DD; range is inclusive on both ends.
-        """
-        async with (await get_client(ctx=ctx)) as client:
-            try:
-                chore_id = await resolve_ref(client, chore_id)
-                occurrences = await client.list_chore_occurrences(
-                    chore_id, from_date=from_date, to_date=to_date
-                )
-            except DefernoError as exc:
-                return format_error(exc)
-        return json.dumps(occurrences)
-
-    @mcp.tool()
-    async def set_chore_occurrence_status(
-        chore_id: str,
-        date: str,
-        status: str,
-        ctx: Context = None,
-    ) -> str:
-        """Set the status of a single chore occurrence.
-
-        ``chore_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the status change.
-
-        ``status`` is the action to apply: one of ``"in_progress"``,
-        ``"done"``, or ``"dropped"`` (alias: ``"skipped"`` for legacy
-        callers). ``date`` is YYYY-MM-DD.
-
-        Note: ``Done`` resolves on the server to either ``DoneOnTime``
-        or ``DoneLate`` based on the occurrence's ``complete_by``.
-        """
-        async with (await get_client(ctx=ctx)) as client:
-            try:
-                chore_id = await resolve_ref(client, chore_id)
-                occurrence = await client.set_chore_occurrence_status(
-                    chore_id, date, status
-                )
-            except DefernoError as exc:
-                return format_error(exc)
-        return json.dumps(occurrence)
-
-    @mcp.tool()
     async def mark_next_chore_done(
         chore_id: str,
         status: str = "done",
@@ -173,29 +116,3 @@ def register(
             except DefernoError as exc:
                 return format_error(exc)
         return json.dumps(occurrence)
-
-    @mcp.tool()
-    async def reschedule_chore_occurrence(
-        chore_id: str,
-        date: str,
-        new_date: str,
-        ctx: Context = None,
-    ) -> str:
-        """Move a single chore occurrence to ``new_date`` without touching the cadence.
-
-        ``chore_id`` accepts any reference form — UUID, sequence shorthand
-        (``#123``, personal-org only), canonical ref (``acme-123``), or app URL
-        — and is resolved to a UUID before the reschedule. ``date`` and
-        ``new_date`` are YYYY-MM-DD occurrence dates, not item references.
-
-        NOTE (v0.2): the backend returns 501 today for chores (legacy
-        storage); the tool is exposed for forward compatibility. Once
-        the chore storage is migrated, this becomes the SCOPE-010 path.
-        """
-        async with (await get_client(ctx=ctx)) as client:
-            try:
-                chore_id = await resolve_ref(client, chore_id)
-                occ = await client.reschedule_chore_occurrence(chore_id, date, new_date)
-            except DefernoError as exc:
-                return format_error(exc)
-        return json.dumps(occ)
