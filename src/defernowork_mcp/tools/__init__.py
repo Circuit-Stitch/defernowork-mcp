@@ -5,9 +5,7 @@ from .capture import register as register_capture
 from .chores import register as register_chores
 from .comments import register as register_comments
 from .event_occurrences import register as register_event_occurrences
-from .events import register as register_events
 from .feedback import register as register_feedback
-from .habits import register as register_habits
 from .item_activity import register as register_item_activity
 from .items import register as register_items
 from .occurrences import register as register_occurrences
@@ -22,9 +20,7 @@ __all__ = [
     "register_chores",
     "register_comments",
     "register_event_occurrences",
-    "register_events",
     "register_feedback",
-    "register_habits",
     "register_item_activity",
     "register_items",
     "register_occurrences",

@@ -62,9 +62,8 @@ def register(
         a ``desire`` score, or sequence chains, use ``create_task``; to parent a
         captured Chore/Habit/Event, capture it then ``move_item`` it under the
         parent (``create_task``'s ``parent_id`` only makes Tasks). Advanced
-        recurring-kind fields (``end_time``, ``cadence_mode``,
-        ``subtask_template``, a recurrence ``end``) are a follow-up ``update_*``
-        after capture.
+        settings capture omits (an Event ``end_time``, a recurrence ``end``
+        bound) are a follow-up ``update_item`` after capture.
         """
         try:
             kind, payload = derive_create_payload(

@@ -20,3 +20,11 @@ RECURRENCE_END_DESC = (
     "date); same-day is allowed — the backend rejects an earlier end with a "
     "400. `{type: after_count, n}` (n >= 1) or an omitted `end` is open-ended."
 )
+
+# Event end >= start, reaffirmed on the param schema AND the docstring (issue
+# #13): the backend rejects an event whose end precedes its start with a 400.
+EVENT_END_TIME_DESC = (
+    "Event end (ISO-8601). When provided, `end_time` must be on or after "
+    "`complete_by` (the event's start); the backend rejects it with a 400 "
+    "otherwise."
+)

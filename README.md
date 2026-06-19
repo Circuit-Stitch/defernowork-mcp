@@ -109,8 +109,8 @@ encodes as *carries-forward* (Chore) vs *lapses* (Habit).
 | `logout`              | Invalidate session and remove saved credentials             |
 | `whoami`              | Return the currently authenticated user                     |
 | `create_task`         | Create a new task (optionally nested under a parent)        |
-| `update_task`         | Patch any mutable field (title, description, status, mood…) |
-| `set_task_status`     | Convenience wrapper for `open`/`in-progress`/`done`/…       |
+| `update_item`         | Patch any item (Task/Chore/Habit/Event); kind-validated fields |
+| `delete_item`         | Delete any item (Task hard-delete; Chore/Habit/Event archive) |
 | `move_item`           | Reparent or reorder any item (Task/Chore/Habit/Event)       |
 | `split_task`          | Decompose a task into two child tasks                       |
 | `fold_task`           | Insert a next-step task into the sibling chain              |
@@ -123,12 +123,13 @@ encodes as *carries-forward* (Chore) vs *lapses* (Habit).
 | `get_items_calendar`  | Calendar view across all item kinds                         |
 | `get_mood_history`    | Mood log for finished tasks                                 |
 
-Kind-specific **mutations** (`update_*`, `delete_*`, occurrence tools,
-attachment tools, etc.) accept any [Ref input form](#ref-input-forms) for their
+Item **mutations** are kind-neutral: `capture_item` creates, `update_item`
+edits, `delete_item` removes, `move_item` reparents, and `convert_item` changes
+kind — each resolves the item's kind from the reference, so the agent never
+picks a per-kind tool. These and every other id-taking tool (occurrence,
+attachment, plan, …) accept any [Ref input form](#ref-input-forms) for their
 item-id arguments — [Transparent resolution](#ref-input-forms) resolves the ref
-to a UUID before the backend call runs. (This is the full list trimmed for
-brevity; every kind — Task, Habit, Chore, Event — has its own create/update/
-delete and occurrence/attachment tools.)
+to a UUID before the backend call runs.
 
 ### Ref input forms
 

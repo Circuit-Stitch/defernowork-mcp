@@ -38,7 +38,7 @@ def register(
 
         ``complete_by`` must be an ISO-8601 UTC timestamp.
         ``parent_id`` attaches the new task as a child of an existing item and
-        accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions). Omit it (or pass ``null``) to create at root.
+        accepts any item ref. Omit it (or pass ``null``) to create at root.
         ``productive`` and ``desire`` are floats in [0, 1] representing how
         productive this task feels and how much the user wants to do it.
         ``recurrence`` sets a repeat schedule. Use ``{"type": "daily"}``,
@@ -78,110 +78,6 @@ def register(
         return json.dumps(task)
 
     @mcp.tool()
-    async def update_task(
-        task_id: str,
-        title: str | None = unset,
-        description: str | None = unset,
-        status: str | None = unset,
-        labels: list[str] | None = unset,
-        assignee: str | None = unset,
-        complete_by: str | None = unset,
-        productive: float | None = unset,
-        desire: float | None = unset,
-        recurrence: dict[str, Any] | None = unset,
-        recurring_scope: str | None = unset,
-        recurrence_id: str | None = unset,
-        recurring_type: str | None = unset,
-        ctx: Context = None,
-    ) -> str:
-        """Patch mutable fields on a task.
-
-        ``task_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
-
-        ``status`` must be one of ``open``, ``in-progress``, ``in-review``,
-        ``done``, ``dropped``, ``pruned``. The backend rejects completing a
-        task while any of its children are still active.
-
-        Pass ``None`` explicitly to clear a field (e.g. ``complete_by=None``
-        removes the deadline). Omitting a parameter leaves it unchanged.
-
-        ``recurrence`` sets or clears a repeat schedule (see ``create_task``).
-
-        ``recurring_type`` can be ``"chore"``, ``"habit"``, or ``"event"``
-        (see ``create_task`` for details). Pass ``None`` to clear.
-
-        For recurring tasks, if you change title, description, labels, or
-        complete_by, you MUST also provide ``recurring_scope``:
-        ``"this"`` (single instance), ``"following"`` (this and future),
-        or ``"all"`` (entire series). ``"this"`` and ``"following"`` also
-        require ``recurrence_id`` (the ISO start time of the instance).
-        If the task is recurring and scope is missing, the call will fail
-        with a message asking you to specify the scope — ask the user
-        which option they prefer.
-
-        v0.2 optional field:
-        - ``occurrence_id``: when this Task is a materialized subtask of a
-          recurring entity's occurrence, the Occurrence id it belongs to.
-          Normal tasks omit this field.
-        """
-        payload = compact(
-            {
-                "title": title,
-                "description": description,
-                "status": status,
-                "labels": labels,
-                "assignee": assignee,
-                "complete_by": complete_by,
-                "productive": productive,
-                "desire": desire,
-                "recurrence": recurrence,
-                "recurring_scope": recurring_scope,
-                "recurrence_id": recurrence_id,
-                "recurring_type": recurring_type,
-            }
-        )
-        async with (await get_client(ctx=ctx)) as client:
-            try:
-                # Resolve any Ref input form to a UUID FIRST: the recurring-scope
-                # get_task check below and the update_task call are both UUID-only.
-                task_id = await resolve_ref(client, task_id)
-                # Check if this is a recurring task needing a scope.
-                if recurring_scope is unset:
-                    deferno_fields = {"title", "description", "labels", "complete_by"}
-                    has_deferno_changes = any(k in payload for k in deferno_fields)
-                    if has_deferno_changes:
-                        task_data = await client.get_task(task_id)
-                        if task_data.get("series_id"):
-                            return (
-                                "This is a recurring task. Please specify "
-                                "recurring_scope: 'this' (single instance), "
-                                "'following' (this and future events), or "
-                                "'all' (entire series). "
-                                "Ask the user which option they prefer."
-                            )
-
-                task = await client.update_task(task_id, payload)
-            except DefernoError as exc:
-                return format_error(exc)
-        return json.dumps(task)
-
-    @mcp.tool()
-    async def set_task_status(task_id: str, status: str, ctx: Context = None) -> str:
-        """Convenience wrapper around ``update_task`` for status changes.
-
-        ``task_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
-
-        Accepts ``open``, ``in-progress``, ``in-review``, ``done``, ``dropped``, ``pruned``.
-        """
-        async with (await get_client(ctx=ctx)) as client:
-            try:
-                task_id = await resolve_ref(client, task_id)
-                task = await client.update_task(task_id, {"status": status})
-            except DefernoError as exc:
-                return format_error(exc)
-        return json.dumps(task)
-
-    @mcp.tool()
     async def split_task(
         task_id: str,
         first_title: str,
@@ -192,7 +88,7 @@ def register(
     ) -> str:
         """Decompose a task into two child tasks while preserving the parent.
 
-        ``task_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
+        ``task_id`` accepts any item ref.
 
         Returns the updated parent and both new children.
         """
@@ -223,7 +119,7 @@ def register(
     ) -> str:
         """Insert a new next-step task directly after ``task_id`` in the sequence.
 
-        ``task_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
+        ``task_id`` accepts any item ref.
 
         Preserves any existing downstream chain. Returns the original task
         and the newly created next task.
@@ -250,7 +146,7 @@ def register(
     async def merge_task(task_id: str, ctx: Context = None) -> str:
         """Roll the active children of a task back into the parent.
 
-        ``task_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
+        ``task_id`` accepts any item ref.
 
         Child content is appended to the parent description; the children are
         marked as ``pruned`` but remain recoverable. Pass the id of any
@@ -288,21 +184,6 @@ def register(
             except DefernoError as exc:
                 return format_error(exc)
         return json.dumps(result)
-
-    @mcp.tool()
-    async def delete_task(task_id: str, ctx: Context = None) -> str:
-        """Hard-delete a task by id.
-
-        ``task_id`` accepts any item ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions).
-        The returned ``task_id`` is the resolved UUID the deletion ran against.
-        """
-        async with (await get_client(ctx=ctx)) as client:
-            try:
-                task_id = await resolve_ref(client, task_id)
-                await client.delete_task(task_id)
-            except DefernoError as exc:
-                return format_error(exc)
-        return json.dumps({"deleted": True, "task_id": task_id})
 
     @mcp.tool()
     async def import_data(
@@ -353,16 +234,16 @@ def register(
         ``operations`` is a list of operation objects. Each must have an
         ``op`` field (``"update"`` or ``"move"``) and a ``task_id``.
 
-        Update operations accept the same fields as ``update_task``
-        (``title``, ``description``, ``status``, ``labels``, etc.) at the
-        top level alongside ``op`` and ``task_id``.
+        Update operations accept the Task mutable fields (``title``,
+        ``description``, ``status``, ``labels``, etc.) at the top level alongside
+        ``op`` and ``task_id``. (This is Tasks-only batch; for a single item of
+        any kind use ``update_item``.)
 
         Move operations accept ``new_parent_id`` (null for root) and an
         optional ``position`` (insertion index).
 
-        Both ``task_id`` and ``new_parent_id`` in each operation accept any item
-        ref (UUID / ``#123`` / ``acme-123`` / app URL; see instructions). A
-        ``new_parent_id`` of ``null`` (detach to root) is left as-is.
+        Both ``task_id`` and ``new_parent_id`` in each operation are any item
+        ref; a ``new_parent_id`` of ``null`` (detach to root) is left as-is.
 
         All operations succeed or none do (all-or-nothing).  On success
         returns ``{"tasks": [...]}``, the list of all modified tasks.
