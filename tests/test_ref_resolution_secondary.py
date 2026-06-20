@@ -4,19 +4,12 @@ Issue #14's MUST is the 6 plan tools (see test_ref_resolution_plan_tools.py).
 This file pins the "(decide during triage)" secondary set — the remaining
 id-taking args that pair naturally with a ``list_items`` ``ref``:
 
-- ``create_task`` — the ``parent_id`` arg (creation tools were excluded from
-  #7). ``parent_id`` defaults to the unset sentinel, so it is resolved ONLY
-  when a real ref is supplied (unset / None pass through untouched).
-  (create_chore/habit/event were folded into capture_item, which carries no
-  parent_id — ADR-0003 keeps parent_id a create_task-only escape.)
 - ``search_items`` — the ``parent_id`` filter (forwarded as a query param).
 - ``batch_tasks`` — nested operation ids (``task_id``, ``new_parent_id``); a
   ``new_parent_id`` of ``null`` (detach to root) is left as-is.
-- ``reorder_pinned_tasks`` — every element of the ``task_ids`` list.
 
-Genuinely UUID-only args (``update_pinned_label.pinned_id``,
-``update_comment``/``delete_comment`` ``comment_id``) are out of scope and not
-touched.
+Genuinely UUID-only args (``update_comment``/``delete_comment`` ``comment_id``)
+are out of scope and not touched.
 """
 
 from __future__ import annotations
@@ -68,41 +61,6 @@ def _tool(mcp, name):
 async def _call(mcp, name, **kwargs):
     tool = _tool(mcp, name)
     return await tool.fn(**kwargs)
-
-
-# ── create_* parent_id: resolve only a supplied ref; unset passes through ─────
-
-
-@respx.mock
-async def test_create_task_parent_id_sequence_resolves(server):
-    by_seq = respx.get(f"{BASE}/items/by-seq/456").mock(
-        return_value=httpx.Response(200, json=_env(_item(PARENT_UUID)))
-    )
-    create = respx.post(f"{BASE}/tasks").mock(
-        return_value=httpx.Response(201, json=_env(_item()))
-    )
-
-    await _call(server, "create_task", title="t", description="d", parent_id="#456")
-
-    assert by_seq.called and create.called
-    body = json.loads(create.calls.last.request.content)
-    assert body["parent_id"] == PARENT_UUID
-
-
-@respx.mock
-async def test_create_task_no_parent_id_no_resolve(server):
-    """No parent_id supplied -> no resolve round-trip, no parent_id in the body."""
-    by_seq = respx.get(f"{BASE}/items/by-seq/456")
-    create = respx.post(f"{BASE}/tasks").mock(
-        return_value=httpx.Response(201, json=_env(_item()))
-    )
-
-    await _call(server, "create_task", title="t", description="d")
-
-    assert create.called
-    assert not by_seq.called
-    body = json.loads(create.calls.last.request.content)
-    assert "parent_id" not in body
 
 
 # ── search_items parent_id filter ─────────────────────────────────────────────
@@ -188,24 +146,3 @@ async def test_batch_tasks_move_null_parent_stays_null(server):
     ops = json.loads(batch.calls.last.request.content)["operations"]
     assert ops[0]["task_id"] == TASK_UUID
     assert ops[0]["new_parent_id"] is None  # detach-to-root, never resolved
-
-
-# ── reorder_pinned_tasks: resolve each element of the list ────────────────────
-
-
-@respx.mock
-async def test_reorder_pinned_tasks_resolves_each_id(server):
-    by_seq = respx.get(f"{BASE}/items/by-seq/456").mock(
-        return_value=httpx.Response(200, json=_env(_item(PARENT_UUID)))
-    )
-    reorder = respx.post(f"{BASE}/tasks/pinned/reorder").mock(
-        return_value=httpx.Response(204)
-    )
-
-    result = await _call(server, "reorder_pinned_tasks", task_ids=[TASK_UUID, "#456"])
-    out = json.loads(result)
-
-    assert by_seq.called and reorder.called
-    body = json.loads(reorder.calls.last.request.content)
-    assert body["task_ids"] == [TASK_UUID, PARENT_UUID]
-    assert out["count"] == 2

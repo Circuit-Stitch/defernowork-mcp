@@ -32,6 +32,6 @@
   ],
   "client_method": "fold_task",
   "client_args_from_example": [],
-  "mcp_tool": "fold_task",
+  "mcp_tool": null,
   "mcp_tool_args_from_example": []
 }

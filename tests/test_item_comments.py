@@ -87,8 +87,13 @@ async def test_post_item_comment_resolves_ref_then_posts(server):
 
 
 @respx.mock
-async def test_post_item_comment_uuid_short_circuits_and_passes_is_private(server):
+async def test_post_item_comment_uuid_passes_is_private(server):
+    """A raw UUID needs no by-seq/by-ref resolve, but the kind-dispatching tool
+    issues one GET /items/{id} to learn the kind, then POSTs the comment."""
     by_seq = respx.get(f"{BASE}/items/by-seq/123")
+    get = respx.get(f"{BASE}/items/{ITEM_UUID}").mock(
+        return_value=httpx.Response(200, json=_env({"id": ITEM_UUID, "kind": "task"}))
+    )
     post = respx.post(f"{BASE}/items/{ITEM_UUID}/comments").mock(
         return_value=httpx.Response(201, json=_env({"id": "c1"}))
     )
@@ -98,9 +103,58 @@ async def test_post_item_comment_uuid_short_circuits_and_passes_is_private(serve
     )
 
     assert post.called
-    assert not by_seq.called  # UUID short-circuits resolve_ref
+    assert get.called  # resolve_ref_with_kind learns the kind via GET /items/{id}
+    assert not by_seq.called  # no by-seq/by-ref resolve for a raw UUID
     body = json.loads(post.calls.last.request.content)
     assert body == {"body": "secret", "is_private": True}
+
+
+# ── post_item_comment: Event ref + date routes to the per-occurrence path ──────
+
+
+DATE = "2026-06-03"
+
+
+@respx.mock
+async def test_post_item_comment_event_with_date_routes_to_occurrence(server):
+    """An Event ref + ``date`` posts to /events/{id}/occurrences/{date}/comment,
+    NOT the item-level /items/{id}/comments path."""
+    by_seq = respx.get(f"{BASE}/items/by-seq/123").mock(
+        return_value=httpx.Response(200, json=_env({"id": ITEM_UUID, "kind": "event"}))
+    )
+    occ_post = respx.post(
+        f"{BASE}/events/{ITEM_UUID}/occurrences/{DATE}/comment"
+    ).mock(return_value=httpx.Response(201, json=_env({"id": "c1", "body": "hi"})))
+    item_post = respx.post(f"{BASE}/items/{ITEM_UUID}/comments")
+
+    result = await _call(
+        server, "post_item_comment", item_id="#123", body="hi", date=DATE
+    )
+    out = json.loads(result)
+
+    assert by_seq.called and occ_post.called
+    assert not item_post.called  # event+date does NOT hit the item-level path
+    body = json.loads(occ_post.calls.last.request.content)
+    assert body == {"body": "hi", "is_private": False}
+    assert out["id"] == "c1"
+
+
+@respx.mock
+async def test_post_item_comment_event_without_date_hits_item_level(server):
+    """An Event ref with NO date still hits /items/{id}/comments — the backend
+    400s there, but that routing is the MCP's documented no-date behavior."""
+    by_seq = respx.get(f"{BASE}/items/by-seq/123").mock(
+        return_value=httpx.Response(200, json=_env({"id": ITEM_UUID, "kind": "event"}))
+    )
+    item_post = respx.post(f"{BASE}/items/{ITEM_UUID}/comments").mock(
+        return_value=httpx.Response(201, json=_env({"id": "c1"}))
+    )
+    occ_post = respx.post(f"{BASE}/events/{ITEM_UUID}/occurrences/{DATE}/comment")
+
+    await _call(server, "post_item_comment", item_id="#123", body="hi")
+
+    assert by_seq.called and item_post.called
+    assert not occ_post.called  # no date -> no per-occurrence routing
 
 
 @respx.mock

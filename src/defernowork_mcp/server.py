@@ -43,16 +43,12 @@ from .refs import COMPACT_ITEM_FIELDS, project, resolve_ref
 from .tools import (
     register_auth,
     register_capture,
-    register_chores,
     register_comments,
     register_daily_plan,
     register_event_occurrences,
-    register_feedback,
     register_item_activity,
     register_items,
     register_occurrences,
-    register_pinned,
-    register_saved_searches,
     register_tasks,
 )
 
@@ -98,7 +94,7 @@ def _get_client(ctx: Context | None = None) -> DefernoClient:
       2. Look up the associated Deferno backend token from Redis.
 
     **HTTP transport (legacy, no OAuth):**
-      Falls back to None (user must use start_auth/complete_auth tools).
+      Falls back to None (no in-band auth; the caller must supply a token).
 
     **stdio transport (local single-user):**
       1. ``DEFERNO_TOKEN`` env var
@@ -268,13 +264,12 @@ def create_server(http_transport: bool = False) -> FastMCP:
         "`get_item` for full detail on one item. "
         "To create any item, use `capture_item`: answer how it behaves "
         "(`attend`? `repeats`? `obligation` need-vs-want) and the server derives "
-        "Task / Chore / Habit / Event. Use `create_task` directly only for a "
-        "subtask under a parent, a `desire` score, or sequence chains. "
-        "`update_item` edits any existing item and `delete_item` removes it "
-        "(both take any item reference and resolve its kind for you). Use "
-        "`split_task` to decompose a task into two subtasks, `fold_task` to insert "
-        "a next-step task in a sequence, and `merge_task` to roll active children "
-        "back into their parent. "
+        "Task / Chore / Habit / Event. For a subtask under a parent, capture then "
+        "`move_item`; for a `desire` score or a sequence chain, capture then "
+        "`update_item`. `update_item` edits any existing item, `delete_item` "
+        "removes it, `move_item` reparents/reorders it, and `convert_item` "
+        "changes its kind — all take any item reference and resolve its kind "
+        "for you. "
         "Use `get_daily_plan` to see today's curated plan (auto-seeded from "
         "recurring tasks + carried-forward items), `add_to_items_plan` / "
         "`remove_from_items_plan` to manage it. When the user asks about their "
@@ -287,12 +282,15 @@ def create_server(http_transport: bool = False) -> FastMCP:
         "a Compact projection by default (a small whitelist of fields; the heavy "
         "`description`/body is included on a single-item `get_item` but dropped "
         "from list rows) — pass `full=true` for the complete record. "
-        "To comment on or attach files to a Task, Chore, Habit, or Event, use the "
-        "kind-neutral item-level tools — `post_item_comment` / "
-        "`list_item_comments` and `presign_item_attachments` / "
-        "`commit_item_attachments` / `list_item_attachments` / "
-        "`delete_item_attachment` / `set_item_attachment_caption` — which take "
-        "any item reference."
+        "To comment on or attach files to any item, use the kind-neutral "
+        "item-level tools — `post_item_comment` / `list_item_comments` and "
+        "`presign_item_attachments` / `commit_item_attachments` / "
+        "`list_item_attachments` / `delete_item_attachment` / "
+        "`set_item_attachment_caption` — which take any item reference; pass an "
+        "optional occurrence `date` to target a specific Event occurrence. "
+        "Edit or delete a comment with `update_comment` / `delete_comment` by "
+        "comment id; an Event-occurrence comment is edited/deleted with "
+        "`patch_event_occurrence_comment` / `delete_event_occurrence_comment`."
     )
 
     mcp = FastMCP(
@@ -303,18 +301,14 @@ def create_server(http_transport: bool = False) -> FastMCP:
     )
 
     # ── Register tool modules ─────────────────────────────────────
-    register_auth(mcp, _get_client_async, _get_anon_client, _format_error, _compact, _UNSET)
+    register_auth(mcp, _get_client_async, _format_error)
     register_tasks(mcp, _get_client_async, _format_error, _compact, _UNSET)
     register_capture(mcp, _get_client_async, _format_error)
-    register_chores(mcp, _get_client_async, _format_error)
     register_event_occurrences(mcp, _get_client_async, _format_error)
     register_occurrences(mcp, _get_client_async, _format_error)
     register_comments(mcp, _get_client_async, _format_error, _compact, _UNSET)
-    register_saved_searches(mcp, _get_client_async, _format_error, _compact, _UNSET)
-    register_feedback(mcp, _get_client_async, _format_error, _compact, _UNSET)
     register_items(mcp, _get_client_async, _format_error, _compact, _UNSET)
     register_item_activity(mcp, _get_client_async, _format_error)
-    register_pinned(mcp, _get_client_async, _format_error)
     register_daily_plan(mcp, _get_client_async, _format_error)
 
     # ── Resources ─────────────────────────────────────────────────
@@ -351,11 +345,6 @@ def create_server(http_transport: bool = False) -> FastMCP:
         return json.dumps(project(record, COMPACT_ITEM_FIELDS), indent=2)
 
     return mcp
-
-
-def _get_anon_client() -> DefernoClient:
-    """Return an unauthenticated DefernoClient (for auth init/verify)."""
-    return DefernoClient(base_url=_resolve_base_url())
 
 
 # ----------------------------------------------------------------- transports

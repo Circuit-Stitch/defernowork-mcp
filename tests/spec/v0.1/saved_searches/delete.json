@@ -11,6 +11,6 @@
   ],
   "client_method": "delete_saved_search",
   "client_args_from_example": [],
-  "mcp_tool": "delete_saved_search",
+  "mcp_tool": null,
   "mcp_tool_args_from_example": []
 }

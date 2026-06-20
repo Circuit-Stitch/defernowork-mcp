@@ -1,7 +1,9 @@
 # Caller-categorized item creation via a single behavioral capture tool
 
 **Status:** accepted (supersedes the create-surface carve-out of
-[ADR-0002](0002-compact-default-consolidated-read-surface.md))
+[ADR-0002](0002-compact-default-consolidated-read-surface.md)); the
+`create_task` retention below is **later reversed by**
+[ADR-0005](0005-agent-relevant-surface-reduction.md) — see the amendment note
 
 Item creation is **caller-categorized**. A single `capture_item` tool takes a
 small, jargon-free **behavioral schema** — the caller answers how the thing
@@ -62,6 +64,17 @@ Two invariants keep the discriminators honest:
   `update_*` after capture, not at capture time.
 
 Net: five create tools become two (`capture_item` + `create_task`).
+
+> **Amendment ([ADR-0005](0005-agent-relevant-surface-reduction.md)):**
+> `create_task` is **later dropped entirely**, leaving `capture_item` as the
+> sole create tool. A parented create becomes `capture_item` → `move_item`; a
+> `desire` / sequence-chain create becomes `capture_item` → `update_item`. The
+> alternative — folding those Task-only fields onto `capture_item` — is the
+> "Extend `capture_item`" option **rejected below**, because it breaks the
+> 1:1 `deferno-kmp` capture contract; dropping `create_task` reverses only the
+> *usability* judgment that the one-call escape "earns its keep," in favour of
+> the round-2 surface reduction. The behavioral schema and golden vectors are
+> unchanged.
 
 ## Cross-repo contract and its direction
 

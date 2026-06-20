@@ -341,24 +341,6 @@ def register(
         return json.dumps(items)
 
     @mcp.tool()
-    async def get_items_plan(
-        date: str | None = None,
-        tz: str | None = None,
-        ctx: Context = None,
-    ) -> str:
-        """Daily plan across all item kinds (Task, Habit, Chore, Event).
-
-        Returns a polymorphic array — each entry has a ``kind`` discriminator.
-        ``date`` defaults to today; ``tz`` is an optional IANA timezone.
-        """
-        async with (await get_client(ctx=ctx)) as client:
-            try:
-                items = await client.get_items_plan(date=date, tz=tz)
-            except DefernoError as exc:
-                return format_error(exc)
-        return json.dumps(items)
-
-    @mcp.tool()
     async def add_to_items_plan(
         task_id: str,
         date: str | None = None,
@@ -460,29 +442,6 @@ def register(
             except DefernoError as exc:
                 return format_error(exc)
         return json.dumps(resp)
-
-    @mcp.tool()
-    async def set_item_pinned(
-        item_id: str,
-        pinned: bool,
-        ctx: Context = None,
-    ) -> str:
-        """Pin or unpin a sidebar item (Task/Habit/Chore/Event).
-
-        ``item_id`` accepts any item ref.
-
-        Backend body is ``{pinned: bool}`` -- the gap-closure plan's optional
-        ``label`` argument is not part of this endpoint (custom pin labels
-        live on ``PATCH /tasks/pinned/{id}``). Returns ``{"ok": true}`` on
-        success (backend response is 204 NO_CONTENT).
-        """
-        async with (await get_client(ctx=ctx)) as client:
-            try:
-                item_id = await resolve_ref(client, item_id)
-                await client.set_item_pinned(item_id, pinned)
-            except DefernoError as exc:
-                return format_error(exc)
-        return json.dumps({"ok": True})
 
     @mcp.tool()
     async def move_item(

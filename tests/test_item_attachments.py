@@ -33,6 +33,7 @@ from defernowork_mcp.client import DefernoClient
 BASE = "http://test:3000/api"
 ITEM_UUID = "11111111-2222-3333-4444-555555555555"
 ATT_ID = "att-abc-123"
+DATE = "2026-06-03"
 
 
 def _env(data):
@@ -184,3 +185,118 @@ async def test_set_item_attachment_caption_clear_sends_null(server):
 
     assert patch.called
     assert json.loads(patch.calls.last.request.content) == {"caption": None}
+
+
+# ── Event ref + date routes to the per-occurrence attachment path ──────────────
+
+
+@respx.mock
+async def test_presign_item_attachments_event_with_date_routes_to_occurrence(server):
+    by_seq = respx.get(f"{BASE}/items/by-seq/123").mock(
+        return_value=httpx.Response(200, json=_env({"id": ITEM_UUID, "kind": "event"}))
+    )
+    occ = respx.post(
+        f"{BASE}/events/{ITEM_UUID}/occurrences/{DATE}/attachments/presign"
+    ).mock(return_value=httpx.Response(200, json=_env([{"attachment_id": ATT_ID}])))
+    item = respx.post(f"{BASE}/items/{ITEM_UUID}/attachments/presign")
+
+    files = [{"filename": "a.png", "content_type": "image/png", "size_bytes": 10}]
+    await _call(
+        server, "presign_item_attachments", item_id="#123", files=files, date=DATE
+    )
+
+    assert by_seq.called and occ.called
+    assert not item.called  # event+date does NOT hit the item-level path
+    assert json.loads(occ.calls.last.request.content) == {"files": files}
+
+
+@respx.mock
+async def test_commit_item_attachments_event_with_date_routes_to_occurrence(server):
+    by_seq = respx.get(f"{BASE}/items/by-seq/123").mock(
+        return_value=httpx.Response(200, json=_env({"id": ITEM_UUID, "kind": "event"}))
+    )
+    occ = respx.post(f"{BASE}/events/{ITEM_UUID}/occurrences/{DATE}/attachments").mock(
+        return_value=httpx.Response(200, json=_env([{"id": ATT_ID}]))
+    )
+    item = respx.post(f"{BASE}/items/{ITEM_UUID}/attachments")
+
+    await _call(
+        server,
+        "commit_item_attachments",
+        item_id="#123",
+        intents=[ATT_ID],
+        date=DATE,
+    )
+
+    assert by_seq.called and occ.called
+    assert not item.called
+    assert json.loads(occ.calls.last.request.content) == {"intents": [ATT_ID]}
+
+
+@respx.mock
+async def test_list_item_attachments_event_with_date_routes_to_occurrence(server):
+    by_seq = respx.get(f"{BASE}/items/by-seq/123").mock(
+        return_value=httpx.Response(200, json=_env({"id": ITEM_UUID, "kind": "event"}))
+    )
+    occ = respx.get(f"{BASE}/events/{ITEM_UUID}/occurrences/{DATE}/attachments").mock(
+        return_value=httpx.Response(200, json=_env([{"id": ATT_ID}]))
+    )
+    item = respx.get(f"{BASE}/items/{ITEM_UUID}/attachments")
+
+    result = await _call(
+        server, "list_item_attachments", item_id="#123", date=DATE
+    )
+    out = json.loads(result)
+
+    assert by_seq.called and occ.called
+    assert not item.called
+    assert out[0]["id"] == ATT_ID
+
+
+@respx.mock
+async def test_delete_item_attachment_event_with_date_routes_to_occurrence(server):
+    """Event+date routes the delete to the occurrence path; att_id rides through
+    verbatim as the final path segment (it is NOT an item ref)."""
+    by_seq = respx.get(f"{BASE}/items/by-seq/123").mock(
+        return_value=httpx.Response(200, json=_env({"id": ITEM_UUID, "kind": "event"}))
+    )
+    occ = respx.delete(
+        f"{BASE}/events/{ITEM_UUID}/occurrences/{DATE}/attachments/{ATT_ID}"
+    ).mock(return_value=httpx.Response(204))
+    item = respx.delete(f"{BASE}/items/{ITEM_UUID}/attachments/{ATT_ID}")
+
+    result = await _call(
+        server,
+        "delete_item_attachment",
+        item_id="#123",
+        att_id=ATT_ID,
+        date=DATE,
+    )
+    out = json.loads(result)
+
+    assert by_seq.called and occ.called
+    assert not item.called
+    assert occ.calls.last.request.url.path == (
+        f"/api/events/{ITEM_UUID}/occurrences/{DATE}/attachments/{ATT_ID}"
+    )
+    assert out == {"ok": True}
+
+
+@respx.mock
+async def test_delete_item_attachment_no_date_hits_item_level(server):
+    """An Event ref with NO date still deletes via the item-level path (backend
+    400s there, but the MCP routing is correct)."""
+    by_seq = respx.get(f"{BASE}/items/by-seq/123").mock(
+        return_value=httpx.Response(200, json=_env({"id": ITEM_UUID, "kind": "event"}))
+    )
+    item = respx.delete(f"{BASE}/items/{ITEM_UUID}/attachments/{ATT_ID}").mock(
+        return_value=httpx.Response(204)
+    )
+    occ = respx.delete(
+        f"{BASE}/events/{ITEM_UUID}/occurrences/{DATE}/attachments/{ATT_ID}"
+    )
+
+    await _call(server, "delete_item_attachment", item_id="#123", att_id=ATT_ID)
+
+    assert by_seq.called and item.called
+    assert not occ.called  # no date -> no per-occurrence routing

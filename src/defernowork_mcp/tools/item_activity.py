@@ -1,18 +1,21 @@
 """Kind-neutral item-level comment + attachment tools (issue #12).
 
-The per-kind Event-occurrence tools (``post_event_occurrence_comment`` …)
-require the caller to know an item's kind and address an occurrence. These
-tools are the *kind-neutral* surface: comment on / attach to a **Task, Chore,
-or Habit** by any reference form, hitting ``/items/{id}/...``. The caller never
-addresses occurrences — for recurring kinds the backend routes the write to the
-current actionable occurrence and aggregates reads into the item-level Activity
-timeline (see Deferno ADR occurrence-comments-storage-vs-presentation).
+These are the *kind-neutral* activity surface: comment on / attach to a **Task,
+Chore, or Habit** by any reference form, hitting ``/items/{id}/...``. The caller
+never addresses occurrences for those kinds — for recurring kinds the backend
+routes the write to the current actionable occurrence and aggregates reads into
+the item-level Activity timeline (see Deferno ADR
+occurrence-comments-storage-vs-presentation).
 
-**Events are NOT supported here.** An Event has no unambiguous item-level
-target, so the backend rejects an item-level comment/attachment on an Event with
-a 400 — use the per-occurrence tools instead (``post_event_occurrence_comment``,
-``presign_event_occurrence_attachments`` / ``commit_…`` / ``list_…`` /
-``delete_…``).
+**Events** are reached through the same tools via the optional occurrence
+``date`` (ADR-0005 activity kind-merge): a ref that resolves to an Event with a
+``date`` routes to the per-occurrence backend call
+(``/events/{id}/occurrences/{date}/...``); every other case hits
+``/items/{id}/...``. An Event ref **without** a ``date`` has no unambiguous
+item-level target, so the backend rejects it with a 400 — pass the occurrence
+``date``. (Edit/delete of an occurrence comment is not here — occurrence
+comments aren't addressable by the generic ``/comments/{id}`` endpoints, so that
+path stays in tools/event_occurrences.py.)
 
 Status: the ``/items/{id}/comments`` path is live for Task and extends to
 Chore/Habit with Deferno backend #266; the ``/items/{id}/attachments/*`` paths
@@ -29,7 +32,7 @@ from typing import Awaitable, Callable
 from mcp.server.fastmcp import Context, FastMCP
 
 from ..client import DefernoClient, DefernoError
-from ..refs import resolve_ref
+from ..refs import resolve_ref, resolve_ref_with_kind
 
 
 def register(
@@ -42,12 +45,15 @@ def register(
         item_id: str,
         body: str,
         is_private: bool = False,
+        date: str | None = None,
         ctx: Context = None,
     ) -> str:
         """Append a comment to an item by reference (kind-neutral).
 
-        Works for **Task, Chore, and Habit**. **Not for Events** — the backend
-        rejects an Event here with a 400; use ``post_event_occurrence_comment``.
+        Works for **Task, Chore, and Habit** directly. For an **Event**, pass
+        the occurrence ``date`` (``YYYY-MM-DD``) and the comment is routed to
+        that occurrence; an Event ref **without** a ``date`` is rejected by the
+        backend with a 400 (no unambiguous item-level target).
 
         ``item_id`` accepts any item ref.
 
@@ -58,8 +64,13 @@ def register(
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
-                item_id = await resolve_ref(client, item_id)
-                comment = await client.post_item_comment(item_id, body, is_private)
+                uuid, kind = await resolve_ref_with_kind(client, item_id)
+                if kind == "event" and date is not None:
+                    comment = await client.post_event_occurrence_comment(
+                        uuid, date, body, is_private
+                    )
+                else:
+                    comment = await client.post_item_comment(uuid, body, is_private)
             except DefernoError as exc:
                 return format_error(exc)
         return json.dumps(comment)
@@ -86,12 +97,15 @@ def register(
     async def presign_item_attachments(
         item_id: str,
         files: list[dict],
+        date: str | None = None,
         ctx: Context = None,
     ) -> str:
         """Batch-presign attachment upload URLs for an item (kind-neutral).
 
-        Works for **Task, Chore, and Habit**. **Not for Events** — the backend
-        rejects an Event here with a 400; use the per-occurrence Event tools.
+        Works for **Task, Chore, and Habit** directly. For an **Event**, pass
+        the occurrence ``date`` (``YYYY-MM-DD``) to presign on that occurrence;
+        an Event ref **without** a ``date`` is rejected by the backend with a
+        400.
 
         ``item_id`` accepts any item ref.
 
@@ -102,8 +116,13 @@ def register(
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
-                item_id = await resolve_ref(client, item_id)
-                resp = await client.presign_item_attachments(item_id, files)
+                uuid, kind = await resolve_ref_with_kind(client, item_id)
+                if kind == "event" and date is not None:
+                    resp = await client.presign_event_occurrence_attachments(
+                        uuid, date, files
+                    )
+                else:
+                    resp = await client.presign_item_attachments(uuid, files)
             except DefernoError as exc:
                 return format_error(exc)
         return json.dumps(resp)
@@ -113,12 +132,15 @@ def register(
         item_id: str,
         intents: list[str] | None = None,
         urls: list[dict] | None = None,
+        date: str | None = None,
         ctx: Context = None,
     ) -> str:
         """Commit presigned intents and/or url-provider entries to an item.
 
-        Works for **Task, Chore, and Habit**. **Not for Events** — the backend
-        rejects an Event here with a 400; use the per-occurrence Event tools.
+        Works for **Task, Chore, and Habit** directly. For an **Event**, pass
+        the occurrence ``date`` (``YYYY-MM-DD``) to commit on that occurrence;
+        an Event ref **without** a ``date`` is rejected by the backend with a
+        400.
 
         ``item_id`` accepts any item ref.
 
@@ -129,15 +151,29 @@ def register(
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
-                item_id = await resolve_ref(client, item_id)
-                resp = await client.commit_item_attachments(item_id, intents, urls)
+                uuid, kind = await resolve_ref_with_kind(client, item_id)
+                if kind == "event" and date is not None:
+                    resp = await client.commit_event_occurrence_attachments(
+                        uuid, date, intents, urls
+                    )
+                else:
+                    resp = await client.commit_item_attachments(uuid, intents, urls)
             except DefernoError as exc:
                 return format_error(exc)
         return json.dumps(resp)
 
     @mcp.tool()
-    async def list_item_attachments(item_id: str, ctx: Context = None) -> str:
+    async def list_item_attachments(
+        item_id: str,
+        date: str | None = None,
+        ctx: Context = None,
+    ) -> str:
         """List an item's attachments by reference (kind-neutral).
+
+        Works for **Task, Chore, and Habit** directly. For an **Event**, pass
+        the occurrence ``date`` (``YYYY-MM-DD``) to list that occurrence's
+        attachments; an Event ref **without** a ``date`` is rejected by the
+        backend with a 400.
 
         ``item_id`` accepts any item ref.
 
@@ -148,8 +184,11 @@ def register(
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
-                item_id = await resolve_ref(client, item_id)
-                resp = await client.list_item_attachments(item_id)
+                uuid, kind = await resolve_ref_with_kind(client, item_id)
+                if kind == "event" and date is not None:
+                    resp = await client.list_event_occurrence_attachments(uuid, date)
+                else:
+                    resp = await client.list_item_attachments(uuid)
             except DefernoError as exc:
                 return format_error(exc)
         return json.dumps(resp)
@@ -158,9 +197,15 @@ def register(
     async def delete_item_attachment(
         item_id: str,
         att_id: str,
+        date: str | None = None,
         ctx: Context = None,
     ) -> str:
         """Delete a single attachment from an item (kind-neutral).
+
+        Works for **Task, Chore, and Habit** directly. For an **Event**, pass
+        the occurrence ``date`` (``YYYY-MM-DD``) to delete from that occurrence;
+        an Event ref **without** a ``date`` is rejected by the backend with a
+        400.
 
         ``item_id`` accepts any item ref. ``att_id`` is an attachment
         id (not an item reference) and is passed through unresolved.
@@ -169,8 +214,11 @@ def register(
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
-                item_id = await resolve_ref(client, item_id)
-                await client.delete_item_attachment(item_id, att_id)
+                uuid, kind = await resolve_ref_with_kind(client, item_id)
+                if kind == "event" and date is not None:
+                    await client.delete_event_occurrence_attachment(uuid, date, att_id)
+                else:
+                    await client.delete_item_attachment(uuid, att_id)
             except DefernoError as exc:
                 return format_error(exc)
         return json.dumps({"ok": True})

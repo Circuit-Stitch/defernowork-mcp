@@ -33,7 +33,7 @@
   ],
   "client_method": "post_event_occurrence_comment",
   "client_args_from_example": ["body", "is_private"],
-  "mcp_tool": "post_event_occurrence_comment",
-  "mcp_tool_args_from_example": ["body", "is_private"],
+  "mcp_tool": null,
+  "mcp_tool_args_from_example": [],
   "notes": "PR-F. Comment.task_id is repurposed as parent-event id (PR-I renames to parent_id). Multiple comments per occurrence supported; POST appends to Occurrence.comment list."
 }

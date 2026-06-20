@@ -3,8 +3,7 @@
 One jargon-free behavioral schema -> a deterministic ``(kind, create-payload)``.
 No inference, no model call: the kind is read straight off three behavioral
 discriminators (the ADR-0003 kind-derivation tree). ``complete_by`` is supplied by
-the caller as a full datetime (like ``create_task``) and passed through verbatim --
-no timezone work here. Defined and tested once; kept in lockstep with deferno-kmp's
+the caller as a full datetime and passed through verbatim -- no timezone work here. Defined and tested once; kept in lockstep with deferno-kmp's
 ``CaptureInput.deriveCreatePayload`` via the golden vectors in tests/spec/capture/
 -- canonical here, pending the KMP amend.
 """

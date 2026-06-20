@@ -45,6 +45,6 @@
   ],
   "client_method": "create_task",
   "client_args_from_example": ["title", "description"],
-  "mcp_tool": "create_task",
-  "mcp_tool_args_from_example": ["title", "description"]
+  "mcp_tool": null,
+  "mcp_tool_args_from_example": []
 }

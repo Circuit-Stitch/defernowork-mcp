@@ -11,5 +11,5 @@
   "client_args_from_example": [],
   "mcp_tool": null,
   "mcp_tool_args_from_example": [],
-  "notes": "302 redirect; OAuth flow handled by start_auth tool, not exposed as a direct client method"
+  "notes": "302 redirect; OAuth flow handled by the transport layer, not exposed as a direct client method"
 }

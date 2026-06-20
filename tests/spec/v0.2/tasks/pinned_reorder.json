@@ -21,7 +21,7 @@
   ],
   "client_method": "reorder_pinned_tasks",
   "client_args_from_example": ["task_ids"],
-  "mcp_tool": "reorder_pinned_tasks",
-  "mcp_tool_args_from_example": ["task_ids"],
+  "mcp_tool": null,
+  "mcp_tool_args_from_example": [],
   "notes": "Backend payload struct ReorderPinnedPayload has field `task_ids: Vec<Uuid>` -- NOT `ids` as the gap-closure plan originally suggested. The submitted list must be an exact permutation of the user's current pinned set; extras/missing/duplicates yield 400. Returns 204 NO_CONTENT."
 }

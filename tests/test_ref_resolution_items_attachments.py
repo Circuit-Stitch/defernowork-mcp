@@ -3,8 +3,8 @@
 Part A's tests/test_ref_resolution_tasks.py carries the heavy per-form matrix. This
 file is the light per-file proof that the Part B tools are wired the same way:
 
-- ``convert_item`` / ``get_item_history`` / ``set_item_pinned`` (items.py) resolve
-  ``item_id`` before acting; a UUID short-circuits with no resolve HTTP.
+- ``convert_item`` / ``get_item_history`` (items.py) resolve ``item_id`` before
+  acting; a UUID short-circuits with no resolve HTTP.
 - A NOT_AUTO_ROUTED ref surfaces a clear error and issues NO operation.
 
 The Task-only attachment tools (``*_task_attachments``) were retired — the
@@ -116,24 +116,6 @@ async def test_get_item_history_canonical_form_resolves_then_gets(server):
     assert by_ref.called and history.called
     assert history.calls.last.request.url.path == f"/api/items/{ITEM_UUID}/history"
     assert out == [{"action": "created"}]
-
-
-@respx.mock
-async def test_set_item_pinned_sequence_form_resolves_then_pins(server):
-    """``#123`` resolves via by-seq, then POSTs /items/{uuid}/pin."""
-    by_seq = respx.get(f"{BASE}/items/by-seq/123").mock(
-        return_value=httpx.Response(200, json=_env({"id": ITEM_UUID, "kind": "task"}))
-    )
-    pin = respx.post(f"{BASE}/items/{ITEM_UUID}/pin").mock(
-        return_value=httpx.Response(204)
-    )
-
-    result = await _call(server, "set_item_pinned", item_id="#123", pinned=True)
-    out = json.loads(result)
-
-    assert by_seq.called and pin.called
-    assert pin.calls.last.request.url.path == f"/api/items/{ITEM_UUID}/pin"
-    assert out == {"ok": True}
 
 
 # ── resolution failure: clear error, NO operation issued ──────────────────────

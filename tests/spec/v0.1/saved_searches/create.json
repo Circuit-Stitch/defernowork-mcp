@@ -29,6 +29,6 @@
   ],
   "client_method": "create_saved_search",
   "client_args_from_example": ["name", "query_string"],
-  "mcp_tool": "create_saved_search",
-  "mcp_tool_args_from_example": ["name", "query_string"]
+  "mcp_tool": null,
+  "mcp_tool_args_from_example": []
 }

@@ -24,6 +24,6 @@
   ],
   "client_method": "mark_next_chore_done",
   "client_args_from_example": ["status"],
-  "mcp_tool": "mark_next_chore_done",
-  "mcp_tool_args_from_example": ["status"]
+  "mcp_tool": null,
+  "mcp_tool_args_from_example": []
 }

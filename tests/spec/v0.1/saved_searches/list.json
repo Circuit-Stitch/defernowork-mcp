@@ -28,6 +28,6 @@
   ],
   "client_method": "list_saved_searches",
   "client_args_from_example": [],
-  "mcp_tool": "list_saved_searches",
+  "mcp_tool": null,
   "mcp_tool_args_from_example": []
 }

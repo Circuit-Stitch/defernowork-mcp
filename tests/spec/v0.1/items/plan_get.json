@@ -20,6 +20,6 @@
   ],
   "client_method": "get_items_plan",
   "client_args_from_example": ["date"],
-  "mcp_tool": "get_items_plan",
-  "mcp_tool_args_from_example": ["date"]
+  "mcp_tool": null,
+  "mcp_tool_args_from_example": []
 }

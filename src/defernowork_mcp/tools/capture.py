@@ -49,9 +49,9 @@ def register(
 
         ``complete_by`` is a full ISO-8601 datetime (an Event's day, else the
         deadline / series-start day) -- required for an Event and for a recurring
-        Chore/Habit (its series start); optional only for a one-off Task. As with
-        ``create_task``, supply it in the user's intended local day; the backend
-        keys off its calendar date in the user's saved timezone. ``time_of_day``
+        Chore/Habit (its series start); optional only for a one-off Task. Supply
+        it in the user's intended local day; the backend keys off its calendar
+        date in the user's saved timezone. ``time_of_day``
         is ``HH:MM`` wall-clock (the Event start, else the deadline time).
         ``recurrence`` is the cadence (required for a recurring Chore/Habit); if
         its ``end`` is ``{type: on_date, date}``, that date must be on or after
@@ -59,11 +59,11 @@ def register(
         allowed.
 
         This is the single create front door. For a Task subtask under a parent,
-        a ``desire`` score, or sequence chains, use ``create_task``; to parent a
-        captured Chore/Habit/Event, capture it then ``move_item`` it under the
-        parent (``create_task``'s ``parent_id`` only makes Tasks). Advanced
-        settings capture omits (an Event ``end_time``, a recurrence ``end``
-        bound) are a follow-up ``update_item`` after capture.
+        capture then ``move_item`` it under the parent; for a ``desire`` score or
+        sequence chains, capture then ``update_item`` (parenting/desire/sequence
+        apply only to Tasks). Advanced settings capture omits (an Event
+        ``end_time``, a recurrence ``end`` bound) are a follow-up ``update_item``
+        after capture.
         """
         try:
             kind, payload = derive_create_payload(

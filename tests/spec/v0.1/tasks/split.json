@@ -33,6 +33,6 @@
   ],
   "client_method": "split_task",
   "client_args_from_example": [],
-  "mcp_tool": "split_task",
+  "mcp_tool": null,
   "mcp_tool_args_from_example": []
 }
