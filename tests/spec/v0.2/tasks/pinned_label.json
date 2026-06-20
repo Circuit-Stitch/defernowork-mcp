@@ -23,7 +23,7 @@
   ],
   "client_method": "update_pinned_label",
   "client_args_from_example": ["label"],
-  "mcp_tool": "update_pinned_label",
-  "mcp_tool_args_from_example": ["label"],
+  "mcp_tool": null,
+  "mcp_tool_args_from_example": [],
   "notes": "Backend payload UpdatePinnedLabelPayload has field `label: Option<String>` -- pass null to clear. The body is sent unconditionally as {label: <value>} (including null), since this PATCH is the only way to clear a label. The {id} path placeholder is the underlying task UUID; the pinned list has no separate pin-record id."
 }

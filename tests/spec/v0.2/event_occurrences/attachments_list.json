@@ -20,7 +20,7 @@
   ],
   "client_method": "list_event_occurrence_attachments",
   "client_args_from_example": [],
-  "mcp_tool": "list_event_occurrence_attachments",
+  "mcp_tool": null,
   "mcp_tool_args_from_example": [],
   "notes": "Returns AttachmentView wire shape; s3 urls are fresh signed GETs."
 }

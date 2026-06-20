@@ -3,9 +3,9 @@
 The chore/habit/event occurrence families were near-isomorphic, so they collapse
 into three tools that resolve the item's kind from the ref and dispatch to the
 per-kind backend call: ``list_occurrences``, ``set_occurrence_status``,
-``reschedule_occurrence``. The chore-specific ``mark_next_chore_done`` stays
-(it targets the *earliest unresolved* occurrence, not a ref+date) and lives in
-chores.py.
+``reschedule_occurrence``. The chore-specific "mark the next one done" case
+(targeting the *earliest unresolved* occurrence, not a ref+date) folds into
+``set_occurrence_status`` as a dateless next-mode (omit ``date``).
 
 Status is normalised to one enum -- ``in_progress`` / ``done`` / ``dropped`` --
 mapped client-side to each kind's native operation:
@@ -82,8 +82,8 @@ def register(
     @mcp.tool()
     async def set_occurrence_status(
         ref: str,
-        date: str,
-        status: str,
+        date: str | None = None,
+        status: str | None = None,
         cascade_subtasks: bool = False,
         ctx: Context = None,
     ) -> str:
@@ -93,6 +93,11 @@ def register(
         ``YYYY-MM-DD`` occurrence date. ``status`` is one of ``in_progress`` /
         ``done`` / ``dropped`` (``dropped`` records the occurrence as skipped —
         the row is kept).
+
+        Omit ``date`` for the **dateless next-mode** (Chore only): ``status`` is
+        applied to the chore's *earliest unresolved* occurrence — the common "I
+        just did the dishes, don't make me look up which date is overdue" case.
+        Habit/Event require an explicit ``date``.
 
         Per-kind: a **Habit** occurrence is done-or-not, so ``done`` marks it
         done, ``dropped`` marks it explicitly not-done, and ``in_progress`` is a
@@ -109,7 +114,16 @@ def register(
         async with (await get_client(ctx=ctx)) as client:
             try:
                 uuid, kind = await resolve_ref_with_kind(client, ref)
-                if kind == "chore":
+                if date is None:
+                    if kind == "chore":
+                        occ = await client.mark_next_chore_done(uuid, status=status)
+                    else:
+                        return (
+                            "set_occurrence_status: dateless next-mode (no date) "
+                            "is supported only for Chore; pass a date for "
+                            "Habit/Event"
+                        )
+                elif kind == "chore":
                     occ = await client.set_chore_occurrence_status(uuid, date, status)
                 elif kind == "event":
                     occ = await client.set_event_occurrence(

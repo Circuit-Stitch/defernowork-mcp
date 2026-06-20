@@ -184,7 +184,33 @@ async def test_raw_uuid_gets_kind_then_dispatches(server):
     assert get.called and put.called  # UUID had no kind locally -> one GET
 
 
-# ── the 11 per-kind occurrence tools are retired; mark_next_chore_done stays ───
+# ── dateless next-mode: mark_next_chore_done folded into set_occurrence_status ─
+
+
+@respx.mock
+@pytest.mark.asyncio
+async def test_set_status_dateless_chore_marks_next_done(server):
+    _by_seq("chore")
+    post = respx.post(f"{BASE}/chores/{UUID}/mark-next-done").mock(
+        return_value=httpx.Response(200, json=_env({"date": "2026-05-01", "status": "DoneOnTime"}))
+    )
+    out = await _call(server, "set_occurrence_status", ref="#123", status="done")
+    assert post.called  # no date -> earliest unresolved occurrence endpoint
+    assert json.loads(post.calls.last.request.content) == {"status": "done"}
+    assert json.loads(out) == {"date": "2026-05-01", "status": "DoneOnTime"}
+
+
+@respx.mock
+@pytest.mark.asyncio
+async def test_set_status_dateless_non_chore_errors_without_backend(server):
+    _by_seq("habit")
+    post = respx.post(f"{BASE}/habits/{UUID}/occurrences")
+    out = await _call(server, "set_occurrence_status", ref="#123", status="done")
+    assert not post.called  # dateless next-mode is chore-only -> no backend call
+    assert "only for Chore" in out
+
+
+# ── the 11 per-kind occurrence tools are retired; so is mark_next_chore_done ───
 
 
 @pytest.mark.parametrize(
@@ -195,12 +221,9 @@ async def test_raw_uuid_gets_kind_then_dispatches(server):
         "reschedule_habit_occurrence",
         "list_event_occurrences", "set_event_occurrence", "delete_event_occurrence",
         "reschedule_event_occurrence",
+        "mark_next_chore_done",
     ],
 )
 def test_per_kind_occurrence_tools_removed(server, removed):
     with pytest.raises(LookupError):
         _tool(server, removed)
-
-
-def test_mark_next_chore_done_survives(server):
-    assert _tool(server, "mark_next_chore_done") is not None

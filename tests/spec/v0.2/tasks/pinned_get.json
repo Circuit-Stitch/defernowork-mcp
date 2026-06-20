@@ -45,7 +45,7 @@
   ],
   "client_method": "list_pinned_tasks",
   "client_args_from_example": [],
-  "mcp_tool": "list_pinned_tasks",
+  "mcp_tool": null,
   "mcp_tool_args_from_example": [],
   "notes": "Returns Vec<PinnedTaskResponse> = [{task: TaskSummary, label: Option<String>}]. The list itself has no separate pin-record id -- entries are keyed on task.id, which is also what PATCH /tasks/pinned/{id} uses. Backend reconciles inconsistencies on every call (drops entries whose underlying task is unpinned or deleted)."
 }

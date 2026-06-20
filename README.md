@@ -104,24 +104,15 @@ encodes as *carries-forward* (Chore) vs *lapses* (Habit).
 
 | Tool                  | Purpose                                                      |
 | --------------------- | ----------------------------------------------------------- |
-| `start_auth`          | Begin browser-based login (returns a URL + session ID)      |
-| `complete_auth`       | Exchange the browser code for a saved token                 |
-| `logout`              | Invalidate session and remove saved credentials             |
 | `whoami`              | Return the currently authenticated user                     |
-| `create_task`         | Create a new task (optionally nested under a parent)        |
+| `capture_item`        | Create any item by behavior → Task/Chore/Habit/Event (the create front door; see [Creating items](#creating-items-behavioral-capture)) |
 | `update_item`         | Patch any item (Task/Chore/Habit/Event); kind-validated fields |
 | `delete_item`         | Delete any item (Task hard-delete; Chore/Habit/Event archive) |
 | `move_item`           | Reparent or reorder any item (Task/Chore/Habit/Event)       |
-| `split_task`          | Decompose a task into two child tasks                       |
-| `fold_task`           | Insert a next-step task into the sibling chain              |
-| `merge_task`          | Roll a parent's active children back into the parent        |
 | `convert_item`        | Convert an item to a different kind (Task/Chore/Habit/Event)|
-| `capture_item`        | Create any item by behavior → Task/Chore/Habit/Event (the create front door; see [Creating items](#creating-items-behavioral-capture)) |
 | `get_daily_plan`      | Today's curated daily plan (recurring + carried forward)    |
-| `get_items_plan`      | Daily plan across all item kinds (polymorphic)              |
 | `add_to_items_plan` / `remove_from_items_plan` / `reorder_items_plan` | Manage the daily plan ordering |
 | `get_items_calendar`  | Calendar view across all item kinds                         |
-| `get_mood_history`    | Mood log for finished tasks                                 |
 
 Item **mutations** are kind-neutral: `capture_item` creates, `update_item`
 edits, `delete_item` removes, `move_item` reparents, and `convert_item` changes
@@ -207,10 +198,10 @@ interactive flow (useful for CI or containers).
 
 ## Authentication flow
 
-The auth flow works the same whether triggered from the CLI
-(`defernowork-mcp auth`) or from within an agent (the `start_auth` /
-`complete_auth` MCP tools). Three backend endpoints coordinate the
-handshake:
+The CLI auth flow (`defernowork-mcp auth`, for stdio transport) is
+coordinated by three backend endpoints. (Remote HTTP clients authenticate
+via the OAuth 2.0 discovery flow instead — see [Install](#install); the old
+in-band `start_auth` / `complete_auth` MCP tools were retired.) The handshake:
 
 ```
 MCP / CLI                  Backend                     Browser
@@ -269,13 +260,15 @@ When the MCP server needs a token it checks, in order:
 
 ### Agent-driven flow
 
-When an agent (Claude Code, Cursor, etc.) calls any tool and gets a 401,
-the server instructions tell it to:
+When an agent (Claude Code, Cursor, etc.) calls any tool and gets a 401:
 
-1. Call `start_auth` — returns `{auth_url, session_id}`
-2. Show the URL to the user and ask them to sign in
-3. Ask the user to paste the code shown in their browser
-4. Call `complete_auth(session_id, code)` — saves credentials to disk
+- **Remote / HTTP clients** follow the OAuth 2.0 discovery flow the server
+  instructions point them to (RFC 9728 PRM → RFC 8414 AS metadata →
+  Authorization Code + PKCE).
+- **Local / stdio clients** need a token on disk — the user runs
+  `defernowork-mcp auth` (the CLI handshake above) once, or sets
+  `DEFERNO_TOKEN`. The in-band `start_auth` / `complete_auth` tools were
+  retired, so an agent cannot self-authenticate over stdio.
 
 All subsequent tool calls work automatically, including across restarts.
 

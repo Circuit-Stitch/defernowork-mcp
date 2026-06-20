@@ -20,6 +20,6 @@
   ],
   "client_method": "update_settings",
   "client_args_from_example": [],
-  "mcp_tool": "update_settings",
-  "mcp_tool_args_from_example": ["theme"]
+  "mcp_tool": null,
+  "mcp_tool_args_from_example": []
 }

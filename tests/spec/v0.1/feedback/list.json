@@ -19,6 +19,6 @@
   ],
   "client_method": "list_feedback",
   "client_args_from_example": [],
-  "mcp_tool": "list_feedback",
+  "mcp_tool": null,
   "mcp_tool_args_from_example": []
 }

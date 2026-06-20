@@ -15,6 +15,6 @@
   ],
   "client_method": "feedback_stats",
   "client_args_from_example": [],
-  "mcp_tool": "feedback_stats",
+  "mcp_tool": null,
   "mcp_tool_args_from_example": []
 }

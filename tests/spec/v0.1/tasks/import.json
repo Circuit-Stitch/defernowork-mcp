@@ -16,6 +16,6 @@
   ],
   "client_method": "import_data",
   "client_args_from_example": [],
-  "mcp_tool": "import_data",
+  "mcp_tool": null,
   "mcp_tool_args_from_example": []
 }

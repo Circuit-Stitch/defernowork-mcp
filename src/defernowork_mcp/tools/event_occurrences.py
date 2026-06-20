@@ -1,10 +1,19 @@
-"""MCP tools for Event-occurrence comments + attachments (PR-F surface).
+"""MCP tools for Event-occurrence comment EDIT / DELETE (the gate fallback).
 
-Event-occurrence *status* (list / set / reschedule) is handled by the
-kind-neutral occurrence tools (tools/occurrences.py). This module wires the
-Event-only per-occurrence comment and attachment operations, which have no
-kind-neutral equivalent: an Event occurrence is addressed by ``event_id`` +
-``date``, and only Events expose occurrence-scoped comments/attachments.
+Only the occurrence-comment *edit* and *delete* operations live here. Posting a
+new occurrence comment, and every occurrence *attachment* op, moved to the
+kind-neutral item-level tools (tools/item_activity.py), which gained an optional
+occurrence ``date`` and route an Event ref + ``date`` to the per-occurrence
+backend call.
+
+Edit/delete could not move the same way: a comment created on an Event
+occurrence (``POST /events/{id}/occurrences/{date}/comment``) is pushed onto an
+embedded ``Occurrence.comment`` Vec and is **not** written to the
+``embedded_comment:<id>`` index, so the generic ``PATCH`` / ``DELETE
+/comments/{id}`` handlers (the ``update_comment`` / ``delete_comment`` tools)
+**404** on it. These two per-occurrence tools, addressed by ``event_id`` +
+``date``, are therefore the only edit/delete path for an occurrence comment
+(ADR-0005's documented fallback).
 """
 
 from __future__ import annotations
@@ -24,130 +33,6 @@ def register(
     format_error: Callable[[DefernoError], str],
 ) -> None:
     @mcp.tool()
-    async def presign_event_occurrence_attachments(
-        event_id: str,
-        date: str,
-        files: list[dict],
-        ctx: Context = None,
-    ) -> str:
-        """Batch-presign attachments for a specific event occurrence (date).
-
-        ``event_id`` accepts any item ref.
-
-        Each entry in ``files`` is ``{filename, content_type, size_bytes}``.
-        Server enforces 25 MB per-file cap, blocked-MIME list, and a
-        max-attachments cap. Returns presigned PUT URLs with intent ids
-        that ``commit_event_occurrence_attachments`` later consumes.
-        """
-        async with (await get_client(ctx=ctx)) as client:
-            try:
-                event_id = await resolve_ref(client, event_id)
-                resp = await client.presign_event_occurrence_attachments(
-                    event_id, date, files
-                )
-            except DefernoError as exc:
-                return format_error(exc)
-        return json.dumps(resp)
-
-    @mcp.tool()
-    async def commit_event_occurrence_attachments(
-        event_id: str,
-        date: str,
-        intents: list[str] | None = None,
-        urls: list[dict] | None = None,
-        ctx: Context = None,
-    ) -> str:
-        """Commit intents and/or url-provider entries to an event occurrence.
-
-        ``event_id`` accepts any item ref.
-
-        ``intents`` are attachment ids returned by a prior presign call
-        whose files have been PUT to S3. ``urls`` are url-provider entries
-        ``{url, filename?}``. 400 if both lists are empty.
-        """
-        async with (await get_client(ctx=ctx)) as client:
-            try:
-                event_id = await resolve_ref(client, event_id)
-                resp = await client.commit_event_occurrence_attachments(
-                    event_id, date, intents, urls
-                )
-            except DefernoError as exc:
-                return format_error(exc)
-        return json.dumps(resp)
-
-    @mcp.tool()
-    async def list_event_occurrence_attachments(
-        event_id: str,
-        date: str,
-        ctx: Context = None,
-    ) -> str:
-        """List attachments on a specific event occurrence (date).
-
-        ``event_id`` accepts any item ref.
-
-        Returns the AttachmentView shape:
-        ``{id, provider, filename, mime, size, created_at, created_by, url}``.
-        ``url`` is a freshly signed GET for s3-backed entries.
-        """
-        async with (await get_client(ctx=ctx)) as client:
-            try:
-                event_id = await resolve_ref(client, event_id)
-                resp = await client.list_event_occurrence_attachments(event_id, date)
-            except DefernoError as exc:
-                return format_error(exc)
-        return json.dumps(resp)
-
-    @mcp.tool()
-    async def delete_event_occurrence_attachment(
-        event_id: str,
-        date: str,
-        att_id: str,
-        ctx: Context = None,
-    ) -> str:
-        """Delete a single attachment from an event occurrence.
-
-        ``event_id`` accepts any item ref. ``att_id`` is the
-        attachment id returned in the AttachmentView (not an item reference)
-        and is passed through unresolved.
-
-        Returns ``{"ok": true}`` on success.
-        """
-        async with (await get_client(ctx=ctx)) as client:
-            try:
-                event_id = await resolve_ref(client, event_id)
-                await client.delete_event_occurrence_attachment(
-                    event_id, date, att_id
-                )
-            except DefernoError as exc:
-                return format_error(exc)
-        return json.dumps({"ok": True})
-
-    @mcp.tool()
-    async def post_event_occurrence_comment(
-        event_id: str,
-        date: str,
-        body: str,
-        is_private: bool = False,
-        ctx: Context = None,
-    ) -> str:
-        """Append a new comment to an event occurrence (date).
-
-        ``event_id`` accepts any item ref.
-
-        Multiple comments per occurrence are supported (PR-F). Returns
-        the persisted Comment with id + created_at.
-        """
-        async with (await get_client(ctx=ctx)) as client:
-            try:
-                event_id = await resolve_ref(client, event_id)
-                resp = await client.post_event_occurrence_comment(
-                    event_id, date, body, is_private
-                )
-            except DefernoError as exc:
-                return format_error(exc)
-        return json.dumps(resp)
-
-    @mcp.tool()
     async def patch_event_occurrence_comment(
         event_id: str,
         date: str,
@@ -158,6 +43,11 @@ def register(
         """Edit the latest comment on an event occurrence (date).
 
         ``event_id`` accepts any item ref.
+
+        This is the only edit path for an occurrence comment: occurrence
+        comments live on the embedded ``Occurrence.comment`` list and are not
+        addressable by the generic ``update_comment`` (``PATCH /comments/{id}``)
+        endpoint, which 404s on them.
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
@@ -178,6 +68,11 @@ def register(
         """Soft-delete the latest comment on an event occurrence (date).
 
         ``event_id`` accepts any item ref.
+
+        This is the only delete path for an occurrence comment: occurrence
+        comments live on the embedded ``Occurrence.comment`` list and are not
+        addressable by the generic ``delete_comment`` (``DELETE /comments/{id}``)
+        endpoint, which 404s on them.
         """
         async with (await get_client(ctx=ctx)) as client:
             try:
