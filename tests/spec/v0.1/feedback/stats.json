@@ -13,7 +13,7 @@
       "example": {"total": 0, "by_status": {}}
     }
   ],
-  "client_method": "feedback_stats",
+  "client_method": null,
   "client_args_from_example": [],
   "mcp_tool": null,
   "mcp_tool_args_from_example": []

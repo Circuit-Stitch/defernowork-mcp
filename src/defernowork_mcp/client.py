@@ -237,15 +237,6 @@ class DefernoClient:
     async def update_task(self, task_id: str, payload: dict[str, Any]) -> dict[str, Any]:
         return await self._request("PATCH", f"/tasks/{task_id}", json_body=payload)
 
-    async def split_task(self, task_id: str, payload: dict[str, Any]) -> dict[str, Any]:
-        return await self._request("POST", f"/tasks/{task_id}/split", json_body=payload)
-
-    async def merge_task(self, task_id: str) -> dict[str, Any]:
-        return await self._request("POST", f"/tasks/{task_id}/merge", json_body={})
-
-    async def fold_task(self, task_id: str, payload: dict[str, Any]) -> dict[str, Any]:
-        return await self._request("POST", f"/tasks/{task_id}/fold", json_body=payload)
-
     async def move_item(
         self, item_id: str, new_parent_id: str | None, position: int | None = None
     ) -> dict[str, Any]:
@@ -271,10 +262,6 @@ class DefernoClient:
 
     async def mood_history(self) -> list[dict[str, Any]]:
         return await self._request("GET", "/tasks/mood-history")
-
-    async def export_data(self) -> dict[str, Any]:
-        """Export all user data."""
-        return await self._request("GET", "/tasks/export")
 
     # ----------------------------------------------------------------- chores
     async def create_chore(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -507,63 +494,6 @@ class DefernoClient:
     async def delete_comment(self, comment_id: str) -> None:
         await self._request("DELETE", f"/comments/{comment_id}")
 
-    # --------------------------------------------------------- saved searches
-    async def list_saved_searches(self) -> list[dict[str, Any]]:
-        return await self._request("GET", "/saved-searches")
-
-    async def create_saved_search(
-        self, name: str, query_string: str
-    ) -> dict[str, Any]:
-        return await self._request(
-            "POST",
-            "/saved-searches",
-            json_body={"name": name, "query_string": query_string},
-        )
-
-    async def update_saved_search(
-        self,
-        saved_search_id: str,
-        name: str | None = None,
-        query_string: str | None = None,
-    ) -> dict[str, Any]:
-        body: dict[str, Any] = {}
-        if name is not None:
-            body["name"] = name
-        if query_string is not None:
-            body["query_string"] = query_string
-        return await self._request(
-            "PATCH", f"/saved-searches/{saved_search_id}", json_body=body
-        )
-
-    async def delete_saved_search(self, saved_search_id: str) -> None:
-        await self._request("DELETE", f"/saved-searches/{saved_search_id}")
-
-    async def reorder_saved_searches(self, ids: list[str]) -> dict[str, Any]:
-        return await self._request(
-            "POST", "/saved-searches/reorder", json_body={"ids": ids}
-        )
-
-    # --------------------------------------------------------------- feedback
-    async def list_feedback(self) -> list[dict[str, Any]]:
-        return await self._request("GET", "/feedback")
-
-    async def feedback_stats(self) -> dict[str, Any]:
-        return await self._request("GET", "/feedback/stats")
-
-    async def update_feedback(
-        self, feedback_id: str, payload: dict[str, Any]
-    ) -> dict[str, Any]:
-        return await self._request(
-            "PATCH", f"/feedback/{feedback_id}", json_body=payload
-        )
-
-    # ------------------------------------------------------------------ auth/settings
-    async def get_settings(self) -> dict[str, Any]:
-        return await self._request("GET", "/auth/me/settings")
-
-    async def update_settings(self, payload: dict[str, Any]) -> dict[str, Any]:
-        return await self._request("PATCH", "/auth/me/settings", json_body=payload)
-
     # ----------------------------------------------------------------- items
     async def get_item(self, item_id: str) -> dict[str, Any]:
         """Fetch any item kind by UUID (``GET /items/{id}``).
@@ -684,17 +614,6 @@ class DefernoClient:
         query = "?" + "&".join(params)
         return await self._request("GET", f"/items/calendar{query}")
 
-    async def get_items_plan(
-        self, date: str | None = None, tz: str | None = None
-    ) -> list[dict[str, Any]]:
-        params: list[str] = []
-        if date is not None:
-            params.append(f"date={date}")
-        if tz is not None:
-            params.append(f"tz={quote(tz, safe='')}")
-        query = "?" + "&".join(params) if params else ""
-        return await self._request("GET", f"/items/plan{query}")
-
     async def add_to_items_plan(
         self, task_id: str, date: str | None = None
     ) -> dict[str, Any]:
@@ -810,61 +729,9 @@ class DefernoClient:
         """Return the action history list for any item kind."""
         return await self._request("GET", f"/items/{item_id}/history")
 
-    async def set_item_pinned(self, item_id: str, pinned: bool) -> None:
-        """Pin or unpin an item. Backend returns 204 NO_CONTENT.
-
-        The plan's optional ``label`` field is not implemented server-side
-        (``SetPinnedPayload`` only carries ``pinned``); per-pin labels live
-        in the separate ``/tasks/pinned/{id}`` PATCH route (see Task 9).
-        """
-        await self._request(
-            "POST", f"/items/{item_id}/pin", json_body={"pinned": pinned}
-        )
-
-    # ----------------------------------------------------------- pinned tasks
-    async def list_pinned_tasks(self) -> list[dict[str, Any]]:
-        """Return the user's sidebar-pinned items in display order.
-
-        Each entry has the shape ``{task: TaskSummary, label: str | null}``.
-        The handler reconciles inconsistencies on every call (drops list
-        entries whose underlying task is no longer pinned or has been
-        deleted), so the result is always self-consistent.
-        """
-        return await self._request("GET", "/tasks/pinned")
-
-    async def reorder_pinned_tasks(self, task_ids: list[str]) -> None:
-        """Replace the pinned-list ordering with ``task_ids``.
-
-        Wire body is ``{"task_ids": [uuid, ...]}`` — NOT ``ids``. Must be
-        an exact permutation of the user's current pinned set; the backend
-        rejects sets with extra/missing/duplicate ids with 400. Returns 204.
-        """
-        await self._request(
-            "POST", "/tasks/pinned/reorder", json_body={"task_ids": task_ids}
-        )
-
-    async def update_pinned_label(
-        self, task_id: str, label: str | None
-    ) -> None:
-        """Set or clear the custom sidebar label for a pinned task.
-
-        Pass ``label=None`` to clear. The body is sent unconditionally as
-        ``{"label": label}`` (including the JSON ``null``) — there is no
-        other way to clear a label. Returns 204 on success; 404 if the
-        task is not in the user's pinned list.
-        """
-        await self._request(
-            "PATCH",
-            f"/tasks/pinned/{task_id}",
-            json_body={"label": label},
-        )
-
     # ---------------------------------------------------------- tasks (extras)
     async def delete_task(self, task_id: str) -> None:
         await self._request("DELETE", f"/tasks/{task_id}")
-
-    async def import_data(self, payload: dict[str, Any]) -> dict[str, Any]:
-        return await self._request("POST", "/tasks/import", json_body=payload)
 
     async def promote_task(self, task_id: str, target_org_id: str) -> None:
         """Promote a personal-org task into ``target_org_id``.

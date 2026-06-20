@@ -18,7 +18,7 @@
       "example": {"id": "00000000-0000-0000-0000-000000000001"}
     }
   ],
-  "client_method": "update_feedback",
+  "client_method": null,
   "client_args_from_example": ["status"],
   "mcp_tool": null,
   "mcp_tool_args_from_example": []

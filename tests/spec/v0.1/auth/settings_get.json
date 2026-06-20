@@ -13,7 +13,7 @@
       "example": {"done_visibility": "show", "theme": "system"}
     }
   ],
-  "client_method": "get_settings",
+  "client_method": null,
   "client_args_from_example": [],
   "mcp_tool": null,
   "mcp_tool_args_from_example": []

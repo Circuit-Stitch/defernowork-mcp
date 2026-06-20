@@ -14,7 +14,7 @@
   "responses": [
     {"status": 204, "shape": "null", "example": null}
   ],
-  "client_method": "set_item_pinned",
+  "client_method": null,
   "client_args_from_example": ["pinned"],
   "mcp_tool": null,
   "mcp_tool_args_from_example": [],
