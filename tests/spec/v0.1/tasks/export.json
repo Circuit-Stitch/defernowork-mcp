@@ -13,7 +13,7 @@
       "example": {"tasks": [], "root_order": [], "plans": []}
     }
   ],
-  "client_method": "export_data",
+  "client_method": null,
   "client_args_from_example": [],
   "mcp_tool": null,
   "mcp_tool_args_from_example": []
