@@ -104,10 +104,16 @@ class RefClassification:
 # GET /items/{id}, by-seq, and by-ref. Both are whitelisted so dropping the
 # discriminator can never happen, regardless of which key a future backend
 # keeps.
+# ``org_slug`` + ``sequence`` belong in the CORE (the LIST-row set): the backend
+# injects ``ref``/``org_slug``/``sequence``/``type`` into every row, and a list
+# row that carried only ``ref`` silently dropped the two it decomposes into. They
+# are identity, not body, so they stay even in the lean list projection.
 COMPACT_ITEM_CORE_FIELDS: tuple[str, ...] = (
     "kind",
     "type",
     "ref",
+    "org_slug",
+    "sequence",
     "title",
     "status",
     "complete_by",
@@ -117,8 +123,6 @@ COMPACT_ITEM_CORE_FIELDS: tuple[str, ...] = (
 
 COMPACT_ITEM_FIELDS: tuple[str, ...] = COMPACT_ITEM_CORE_FIELDS + (
     "id",
-    "sequence",
-    "org_slug",
     "pinned",
     "date_created",
     "description",

@@ -82,7 +82,9 @@ async def test_client_default_sends_compact_select_and_no_filter():
     assert route.called
     q = _query_of(respx.calls.last.request)
     # $select carries exactly the compact LIST-row field set (order preserved).
-    assert q["$select"] == ["kind,type,ref,title,status,complete_by,parent_id,labels"]
+    assert q["$select"] == [
+        "kind,type,ref,org_slug,sequence,title,status,complete_by,parent_id,labels"
+    ]
     # No filter, no top, no window by default.
     assert "$filter" not in q
     assert "$top" not in q
@@ -238,9 +240,13 @@ async def test_tool_compact_by_default(server):
     out = json.loads(await _tool(server, "list_items").fn())
     assert isinstance(out, list) and len(out) == 1
     row = out[0]
-    # Compact LIST-row whitelist present...
-    for k in ("kind", "type", "ref", "title", "status", "complete_by", "parent_id", "labels"):
-        assert k in row
+    # Compact LIST-row whitelist present — including the full identity
+    # (org_slug + sequence, the parts ref decomposes into) the backend injects.
+    for k in (
+        "kind", "type", "ref", "org_slug", "sequence",
+        "title", "status", "complete_by", "parent_id", "labels",
+    ):
+        assert k in row, f"{k!r} dropped from compact list row"
     # ...and the body (description) plus raw id are dropped from list rows.
     assert "description" not in row
     assert "id" not in row
