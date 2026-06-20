@@ -70,8 +70,8 @@ class DefernoClient:
             return
         raise DefernoError(
             401,
-            "not authenticated — call the `start_auth` tool to begin the "
-            "login flow, or run `defernowork-mcp auth` in your terminal",
+            "not authenticated — over HTTP, complete the OAuth flow; over "
+            "stdio, run `defernowork-mcp auth` in your terminal",
         )
 
     async def _request(

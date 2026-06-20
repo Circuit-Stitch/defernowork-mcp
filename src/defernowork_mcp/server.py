@@ -94,7 +94,7 @@ def _get_client(ctx: Context | None = None) -> DefernoClient:
       2. Look up the associated Deferno backend token from Redis.
 
     **HTTP transport (legacy, no OAuth):**
-      Falls back to None (user must use start_auth/complete_auth tools).
+      Falls back to None (no in-band auth; the caller must supply a token).
 
     **stdio transport (local single-user):**
       1. ``DEFERNO_TOKEN`` env var
