@@ -340,6 +340,21 @@ async def test_update_item_blocked_by_on_chore_rejected_no_write(server):
     assert "blocked_by" in result and "Task" in result
 
 
+@respx.mock
+@pytest.mark.parametrize("value", [[{"occurrence": "2026-06-20"}], ["#123"]])
+async def test_update_item_blocked_by_malformed_entry_rejected_no_write(server, value):
+    """A blocker entry missing ``item`` (or not a dict) is rejected before any write."""
+    by_seq = respx.get(f"{BASE}/items/by-seq/123").mock(
+        return_value=httpx.Response(200, json=_env(_entity("task")))
+    )
+    patch = respx.patch(f"{BASE}/tasks/{UUID}")
+
+    result = await _call(server, "update_item", ref="#123", blocked_by=value)
+
+    assert not patch.called
+    assert "blocked_by" in result and "item" in result
+
+
 # ── delete_item: per-kind dispatch + return shape ─────────────────────────────
 
 

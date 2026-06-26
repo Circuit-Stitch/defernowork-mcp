@@ -93,19 +93,16 @@ def register(
         To change a recurring Chore/Habit/Event *occurrence* (mark it done,
         skip, reschedule) use the occurrence tools, not this.
         """
-        provided = {
-            k
-            for k, v in {
-                "title": title, "description": description,
-                "complete_by": complete_by, "labels": labels,
-                "recurrence": recurrence, "status": status,
-                "assignee": assignee, "productive": productive,
-                "desire": desire, "recurring_scope": recurring_scope,
-                "recurrence_id": recurrence_id, "recurring_type": recurring_type,
-                "blocked_by": blocked_by, "end_time": end_time,
-            }.items()
-            if v is not unset
+        fields = {
+            "title": title, "description": description,
+            "complete_by": complete_by, "labels": labels,
+            "recurrence": recurrence, "status": status,
+            "assignee": assignee, "productive": productive,
+            "desire": desire, "recurring_scope": recurring_scope,
+            "recurrence_id": recurrence_id, "recurring_type": recurring_type,
+            "blocked_by": blocked_by, "end_time": end_time,
         }
+        provided = {k for k, v in fields.items() if v is not unset}
         async with (await get_client(ctx=ctx)) as client:
             try:
                 uuid, kind = await resolve_ref_with_kind(client, ref)
@@ -125,21 +122,18 @@ def register(
                 # Resolve each blocker's `item` ref to a UUID, preserving its
                 # occurrence (clear/no-op forms — None/[]/unset — pass through).
                 if isinstance(blocked_by, list) and blocked_by:
-                    blocked_by = [
+                    if not all(isinstance(b, dict) and "item" in b for b in blocked_by):
+                        return (
+                            'update_item: each blocked_by entry must be '
+                            '{"item": <ref>, "occurrence"?: "YYYY-MM-DD"}'
+                        )
+                    fields["blocked_by"] = [
                         {"item": await resolve_ref(client, b["item"]),
                          "occurrence": b.get("occurrence")}
                         for b in blocked_by
                     ]
 
-                payload = compact({
-                    "title": title, "description": description,
-                    "complete_by": complete_by, "labels": labels,
-                    "recurrence": recurrence, "status": status,
-                    "assignee": assignee, "productive": productive,
-                    "desire": desire, "recurring_scope": recurring_scope,
-                    "recurrence_id": recurrence_id, "recurring_type": recurring_type,
-                    "blocked_by": blocked_by, "end_time": end_time,
-                })
+                payload = compact(fields)
 
                 if kind == "task":
                     # Recurring-Task scope guard: a deferno-field change with no
