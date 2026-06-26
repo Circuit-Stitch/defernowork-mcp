@@ -10,7 +10,7 @@
       "optional": [
         "title", "description", "status", "labels", "complete_by",
         "desire", "productive", "mood_start", "mood_finish",
-        "recurrence", "next_task_id", "pinned"
+        "recurrence", "next_task_id", "pinned", "blocked_by"
       ],
       "example": {"status": "in-progress"}
     }
