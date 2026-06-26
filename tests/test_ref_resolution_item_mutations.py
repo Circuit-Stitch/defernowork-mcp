@@ -259,6 +259,87 @@ async def test_update_item_end_time_off_event_rejected_no_write(server):
     assert "end_time" in result and "Event" in result
 
 
+# ── blocked_by: Task-only dependency edge (three-state + ref resolution) ──────
+
+BLOCKER_UUID = "99999999-8888-7777-6666-555555555555"
+
+
+@respx.mock
+async def test_update_item_blocked_by_omitted_absent_from_body(server):
+    """Omitting blocked_by keeps it out of the PATCH body (no-op three-state)."""
+    by_seq = respx.get(f"{BASE}/items/by-seq/123").mock(
+        return_value=httpx.Response(200, json=_env(_entity("task")))
+    )
+    patch = respx.patch(f"{BASE}/tasks/{UUID}").mock(
+        return_value=httpx.Response(200, json=_env(_entity("task")))
+    )
+
+    await _call(server, "update_item", ref="#123", status="done")
+
+    assert by_seq.called and patch.called
+    body = json.loads(patch.calls.last.request.content)
+    assert "blocked_by" not in body
+
+
+@respx.mock
+@pytest.mark.parametrize("value", [None, []])
+async def test_update_item_blocked_by_clear_forwarded(server, value):
+    """``None`` and ``[]`` both survive compaction and clear the edge on the wire."""
+    by_seq = respx.get(f"{BASE}/items/by-seq/123").mock(
+        return_value=httpx.Response(200, json=_env(_entity("task")))
+    )
+    patch = respx.patch(f"{BASE}/tasks/{UUID}").mock(
+        return_value=httpx.Response(200, json=_env(_entity("task")))
+    )
+
+    await _call(server, "update_item", ref="#123", blocked_by=value)
+
+    body = json.loads(patch.calls.last.request.content)
+    assert "blocked_by" in body and body["blocked_by"] == value
+
+
+@respx.mock
+async def test_update_item_blocked_by_resolves_blocker_ref_preserves_occurrence(server):
+    """Each blocker's ``item`` resolves to a UUID; ``occurrence`` rides through."""
+    kind_get = respx.get(f"{BASE}/items/{UUID}").mock(
+        return_value=httpx.Response(200, json=_env(_entity("task")))
+    )
+    # blocker handed in as #123 -> by-seq resolve to a different UUID
+    by_seq = respx.get(f"{BASE}/items/by-seq/123").mock(
+        return_value=httpx.Response(200, json=_env(_entity("task", id=BLOCKER_UUID)))
+    )
+    patch = respx.patch(f"{BASE}/tasks/{UUID}").mock(
+        return_value=httpx.Response(200, json=_env(_entity("task")))
+    )
+
+    await _call(
+        server,
+        "update_item",
+        ref=UUID,
+        blocked_by=[{"item": "#123", "occurrence": "2026-06-20"}],
+    )
+
+    assert kind_get.called and by_seq.called and patch.called
+    body = json.loads(patch.calls.last.request.content)
+    assert body["blocked_by"] == [{"item": BLOCKER_UUID, "occurrence": "2026-06-20"}]
+
+
+@respx.mock
+async def test_update_item_blocked_by_on_chore_rejected_no_write(server):
+    """``blocked_by`` is Task-only -> wrong-kind rejection before any write."""
+    by_seq = respx.get(f"{BASE}/items/by-seq/123").mock(
+        return_value=httpx.Response(200, json=_env(_entity("chore")))
+    )
+    patch = respx.patch(f"{BASE}/chores/{UUID}")
+
+    result = await _call(
+        server, "update_item", ref="#123", blocked_by=[{"item": UUID}]
+    )
+
+    assert by_seq.called and not patch.called
+    assert "blocked_by" in result and "Task" in result
+
+
 # ── delete_item: per-kind dispatch + return shape ─────────────────────────────
 
 

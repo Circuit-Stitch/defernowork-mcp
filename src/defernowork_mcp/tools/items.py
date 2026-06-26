@@ -22,7 +22,7 @@ from ..refs import (
 # description, complete_by, labels, recurrence) are shared across all kinds.
 _TASK_ONLY_FIELDS = frozenset(
     {"status", "assignee", "productive", "desire",
-     "recurring_scope", "recurrence_id", "recurring_type"}
+     "recurring_scope", "recurrence_id", "recurring_type", "blocked_by"}
 )
 
 
@@ -50,6 +50,7 @@ def register(
         recurring_scope: str | None = unset,
         recurrence_id: str | None = unset,
         recurring_type: str | None = unset,
+        blocked_by: list[dict[str, Any]] | None = unset,
         end_time: Annotated[
             str | None, Field(description=EVENT_END_TIME_DESC)
         ] = unset,
@@ -79,6 +80,13 @@ def register(
         ``"this"`` / ``"following"`` also need ``recurrence_id`` (the instance's
         ISO start). If scope is missing the call returns a message asking for it.
 
+        ``blocked_by`` is the dependency edge — a list of
+        ``{"item": <ref>, "occurrence"?: "YYYY-MM-DD"}`` entries. Each blocker is
+        a Task (omit ``occurrence``) or a recurring occurrence (``occurrence``
+        required). Three-state: omit to leave unchanged, pass ``[]`` or ``None``
+        to clear all blockers, pass a list to replace the set. Each ``item`` is
+        any item ref, resolved transparently.
+
         **Event-only**: ``end_time`` — when provided it must be on or after
         ``complete_by`` (the Event start), else the backend rejects it with a 400.
 
@@ -94,7 +102,7 @@ def register(
                 "assignee": assignee, "productive": productive,
                 "desire": desire, "recurring_scope": recurring_scope,
                 "recurrence_id": recurrence_id, "recurring_type": recurring_type,
-                "end_time": end_time,
+                "blocked_by": blocked_by, "end_time": end_time,
             }.items()
             if v is not unset
         }
@@ -114,6 +122,15 @@ def register(
                 if kind != "event" and "end_time" in provided:
                     return f"update_item: end_time applies only to an Event (this is a {kind})"
 
+                # Resolve each blocker's `item` ref to a UUID, preserving its
+                # occurrence (clear/no-op forms — None/[]/unset — pass through).
+                if isinstance(blocked_by, list) and blocked_by:
+                    blocked_by = [
+                        {"item": await resolve_ref(client, b["item"]),
+                         "occurrence": b.get("occurrence")}
+                        for b in blocked_by
+                    ]
+
                 payload = compact({
                     "title": title, "description": description,
                     "complete_by": complete_by, "labels": labels,
@@ -121,7 +138,7 @@ def register(
                     "assignee": assignee, "productive": productive,
                     "desire": desire, "recurring_scope": recurring_scope,
                     "recurrence_id": recurrence_id, "recurring_type": recurring_type,
-                    "end_time": end_time,
+                    "blocked_by": blocked_by, "end_time": end_time,
                 })
 
                 if kind == "task":
