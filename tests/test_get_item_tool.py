@@ -230,3 +230,62 @@ async def test_get_item_not_found_returns_error_string(server):
     assert isinstance(result, str)
     assert "404" in result
     assert "not_found" in result
+
+
+# ── per-day occurrence state on a single-item read ───────────────────────────
+
+
+HABIT_UUID = "99999999-8888-7777-6666-555555555555"
+
+FULL_HABIT = {
+    "kind": "habit",
+    "type": "habit",
+    "id": HABIT_UUID,
+    "ref": "u-1y0e2v-2",
+    "sequence": 2,
+    "org_slug": "u-1y0e2v",
+    "title": "Standup",
+    # A recurring item's status is active/archived and can NEVER be "done" —
+    # resolving one date resolves THAT DATE only, leaving the series open.
+    "status": "active",
+    "labels": [],
+    "pinned": False,
+    "parent_id": None,
+    # complete_by ADVANCES to the next occurrence on mark-done, so it names
+    # tomorrow's deadline, not today's state.
+    "complete_by": "2026-08-04T00:00:00Z",
+    "date_created": "2026-06-01T00:00:00Z",
+    "description": "daily team sync",
+    "today_occurrence": {
+        "id": "33333333-3333-3333-3333-333333333333",
+        "parent_id": HABIT_UUID,
+        "scheduled_date": "2026-08-03",
+        "complete_by": "2026-08-03T23:59:59Z",
+        "status": "done_on_time",
+        "done_at": "2026-08-03T09:15:00Z",
+    },
+    # heavy fields that compact must still drop:
+    "actions": [{"kind": "created"}],
+    "comments": [{"body": "hi"}],
+}
+
+
+@respx.mock
+async def test_get_item_compact_keeps_today_occurrence(server):
+    """``get_item`` must be able to answer "is this done today?".
+
+    Nothing else in the compact projection can: the item ``status`` reads
+    ``active`` whether or not today is checked in, and ``complete_by`` has
+    already advanced past today.
+    """
+    respx.get(f"{BASE}/items/{HABIT_UUID}").mock(
+        return_value=httpx.Response(200, json=_env(FULL_HABIT))
+    )
+    out = await _call(server, item=HABIT_UUID)
+
+    assert out["status"] == "active"
+    assert out["today_occurrence"]["status"] == "done_on_time"
+    assert out["today_occurrence"]["scheduled_date"] == "2026-08-03"
+    # still a compact projection — heavy arrays dropped
+    assert "actions" not in out
+    assert "comments" not in out

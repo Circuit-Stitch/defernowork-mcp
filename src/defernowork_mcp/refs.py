@@ -108,6 +108,12 @@ class RefClassification:
 # injects ``ref``/``org_slug``/``sequence``/``type`` into every row, and a list
 # row that carried only ``ref`` silently dropped the two it decomposes into. They
 # are identity, not body, so they stay even in the lean list projection.
+#
+# WARNING — the CORE is also a WIRE REQUEST, not just a client-side filter:
+# ``DefernoClient.list_items`` sends it verbatim as the OData ``$select`` on
+# ``GET /items``. A name added here is asked of the backend for every row of the
+# hottest list endpoint. Per-item state that the backend has to go compute
+# therefore does NOT belong in the CORE, however useful it is on a single read.
 COMPACT_ITEM_CORE_FIELDS: tuple[str, ...] = (
     "kind",
     "type",
@@ -121,11 +127,28 @@ COMPACT_ITEM_CORE_FIELDS: tuple[str, ...] = (
     "labels",
 )
 
+# ``today_occurrence`` is the single-item extension ONLY, deliberately not the
+# CORE. It is the per-date resolution state of a recurring item, and it is the
+# only field that can answer "is this done today?": resolving one Occurrence
+# resolves THAT DATE only, so the owning item's ``status`` stays
+# ``active``/``archived`` and can never read ``done``, while its ``complete_by``
+# advances to the NEXT occurrence the moment today is resolved. Stripping it
+# from ``get_item`` left an MCP client with no way to tell a checked-in Habit
+# from an untouched one.
+#
+# It stays OUT of the list-row set by decision, not oversight (ADR
+# 2026-08-03 "occurrence state on item reads"): ``GET /items`` answers *what
+# exists* — its consumers are search, pickers, and trees, none of which render
+# per-day state — and the CORE is the ``$select`` sent on that endpoint, so
+# listing it here would buy a per-row occurrence read on the hottest list route
+# for nobody. The dividing line is "does this surface answer a question about a
+# date?"; ``/items`` does not, single-item reads and the plan feed do.
 COMPACT_ITEM_FIELDS: tuple[str, ...] = COMPACT_ITEM_CORE_FIELDS + (
     "id",
     "pinned",
     "date_created",
     "description",
+    "today_occurrence",
 )
 
 

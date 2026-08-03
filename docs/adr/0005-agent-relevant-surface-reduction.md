@@ -64,6 +64,16 @@ the kept primitives; what they add is atomicity and one fewer round-trip:
 - **`get_items_plan`** — duplicate of `get_daily_plan`, which is kept (it is the
   seeded, carried-forward today-view and already spans all kinds).
 
+  **Correction (2026-08-03):** the parenthetical was false when written.
+  `get_daily_plan` read `GET /tasks/plan`, which runs the same seeder over the
+  same plan id list but then loads it through a Tasks-only lookup and drops the
+  misses — so it spanned Tasks *only*, and a plan holding one Habit came back
+  `[]`. The two tools were not duplicates; the one that actually spanned all
+  kinds is the one that got dropped. The decision stands (one plan tool, named
+  `get_daily_plan`), but it is now wired to `GET /items/plan` — the endpoint
+  `get_items_plan` would have read — so the claim is true retroactively. See
+  the Deferno ADR `2026-08-03-occurrence-state-on-item-reads`.
+
 `batch_tasks` is **kept** — its atomic, all-or-nothing multi-update/move is a
 real guarantee a primitive loop cannot give.
 

@@ -19,8 +19,9 @@
       ]
     }
   ],
-  "client_method": "get_daily_plan",
+  "client_method": null,
   "client_args_from_example": [],
-  "mcp_tool": "get_daily_plan",
-  "mcp_tool_args_from_example": []
+  "mcp_tool": null,
+  "mcp_tool_args_from_example": [],
+  "notes": "client_method + mcp_tool intentionally null: nothing in the MCP reads this endpoint any more. It runs the same plan seeder as items.plan_get, but then loads the plan's id list through a Tasks-only lookup and drops the misses, so every Habit, Chore and Event on the plan is silently withheld -- a user whose day is one habit gets [] back. get_daily_plan (client + tool) is wired to items.plan_get instead. This fixture stays because the endpoint-inventory gate requires one fixture per registry row, and the endpoint still exists in the backend."
 }
