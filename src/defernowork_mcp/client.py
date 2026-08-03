@@ -252,13 +252,32 @@ class DefernoClient:
     async def get_daily_plan(
         self, date: str | None = None, tz: str | None = None
     ) -> list[dict[str, Any]]:
+        """Read today's curated plan as a **kind-tagged union**.
+
+        Reads ``GET /items/plan``, NOT ``/tasks/plan``. Both endpoints run the
+        same seeder over the same plan id list, but the task-scoped one loads
+        that list through a Tasks-only lookup and ``filter_map``s the misses
+        away — so every Habit, Chore, and Event on the plan is silently
+        dropped and a user whose day is one habit gets ``[]`` back.
+
+        Each row carries a ``kind`` discriminant (``task`` | ``habit`` |
+        ``chore`` | ``event``); the three recurring kinds also carry
+        ``today_occurrence``, the per-date resolution state. Read done-ness
+        from ``today_occurrence.status`` — a recurring item's own ``status``
+        is ``active``/``archived`` and can never be ``done``, and its
+        ``complete_by`` advances to the NEXT occurrence once today is
+        resolved, so neither field answers "is this done today?".
+
+        ``date`` / ``tz`` are the same query parameters the task-scoped
+        endpoint took.
+        """
         params: list[str] = []
         if date is not None:
             params.append(f"date={date}")
         if tz is not None:
             params.append(f"tz={quote(tz, safe='')}")
         query = "?" + "&".join(params) if params else ""
-        return await self._request("GET", f"/tasks/plan{query}")
+        return await self._request("GET", f"/items/plan{query}")
 
     async def mood_history(self) -> list[dict[str, Any]]:
         return await self._request("GET", "/tasks/mood-history")

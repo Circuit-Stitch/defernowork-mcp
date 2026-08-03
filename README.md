@@ -110,7 +110,7 @@ encodes as *carries-forward* (Chore) vs *lapses* (Habit).
 | `delete_item`         | Delete any item (Task hard-delete; Chore/Habit/Event archive) |
 | `move_item`           | Reparent or reorder any item (Task/Chore/Habit/Event)       |
 | `convert_item`        | Convert an item to a different kind (Task/Chore/Habit/Event)|
-| `get_daily_plan`      | Today's curated daily plan (recurring + carried forward)    |
+| `get_daily_plan`      | Today's curated daily plan (recurring + carried forward): kind-tagged rows across all four kinds, recurring rows carrying `today_occurrence` |
 | `add_to_items_plan` / `remove_from_items_plan` / `reorder_items_plan` | Manage the daily plan ordering |
 | `get_items_calendar`  | Calendar view across all item kinds                         |
 
@@ -150,7 +150,7 @@ conversation is the job of a future context-adaptive classifier — see
 
 | URI                                | Content                                                       |
 | ---------------------------------- | ------------------------------------------------------------- |
-| `defernowork://tasks/plan`         | Today's curated daily plan                                    |
+| `defernowork://tasks/plan`         | Today's curated daily plan (all four kinds, despite the `tasks/` URI) |
 | `defernowork://tasks/mood-history` | Mood log for finished tasks                                   |
 | `defernowork://item/{ref}`         | A single item by any [Ref input form](#ref-input-forms) (Compact) |
 

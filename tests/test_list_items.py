@@ -294,3 +294,54 @@ async def test_tool_unknown_filter_field_400_surfaces(server):
     assert isinstance(result, str)
     assert "400" in result
     assert "not filterable" in result
+
+
+# ── per-day state is deliberately absent from the list ───────────────────────
+
+
+HABIT_ROW_WITH_OCCURRENCE = {
+    **ROW,
+    "kind": "habit",
+    "type": "habit",
+    "id": "99999999-9999-9999-9999-999999999999",
+    "title": "Standup",
+    "status": "active",
+    "today_occurrence": {
+        "id": "33333333-3333-3333-3333-333333333333",
+        "parent_id": "99999999-9999-9999-9999-999999999999",
+        "scheduled_date": "2026-08-03",
+        "complete_by": "2026-08-03T23:59:59Z",
+        "status": "done_on_time",
+    },
+}
+
+
+@respx.mock
+@pytest.mark.asyncio
+async def test_client_never_selects_today_occurrence_on_the_items_list():
+    """``/items`` answers *what exists*, never *what is done today*.
+
+    ADR 2026-08-03 makes this an explicit no: attaching per-day occurrence
+    state to the list costs a per-row occurrence read on the hottest list
+    endpoint and buys nothing for its consumers (search, pickers, trees). The
+    ``$select`` the client builds is the wire-level expression of that, so
+    guard it by name — the plain field-set assertion above would let a rename
+    slip through unexplained.
+    """
+    respx.get(f"{BASE}/items").mock(return_value=httpx.Response(200, json=_env([])))
+    async with DefernoClient(base_url=BASE, token="t") as client:
+        await client.list_items()
+    q = _query_of(respx.calls.last.request)
+    assert "today_occurrence" not in q["$select"][0]
+
+
+@respx.mock
+@pytest.mark.asyncio
+async def test_tool_list_items_projection_drops_today_occurrence(server):
+    """Even if a future backend volunteers the field, list rows must drop it."""
+    respx.get(f"{BASE}/items").mock(
+        return_value=httpx.Response(200, json=_env([HABIT_ROW_WITH_OCCURRENCE]))
+    )
+    rows = json.loads(await _tool(server, "list_items").fn())
+    assert rows[0]["kind"] == "habit"
+    assert "today_occurrence" not in rows[0]

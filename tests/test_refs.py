@@ -16,6 +16,7 @@ import respx
 
 from defernowork_mcp.client import DefernoClient, DefernoError
 from defernowork_mcp.refs import (
+    COMPACT_ITEM_CORE_FIELDS,
     COMPACT_ITEM_FIELDS,
     RefForm,
     classify_ref,
@@ -314,3 +315,54 @@ def test_compact_item_fields_keeps_both_discriminators_and_description():
     assert "comments" not in out
     assert "children" not in out
     assert "mood_start" not in out
+
+
+# ── today_occurrence: single-item view only, never the list-row core ─────────
+
+
+_HABIT_WITH_OCCURRENCE = {
+    "kind": "habit",
+    "type": "habit",
+    "id": UUID_STR,
+    "ref": "u-1y0e2v-2",
+    "sequence": 2,
+    "org_slug": "u-1y0e2v",
+    "title": "Standup",
+    # A recurring item's status is active/archived — it can NEVER be "done",
+    # so it cannot answer "is this done today?".
+    "status": "active",
+    "labels": [],
+    "parent_id": None,
+    "complete_by": "2026-08-04T00:00:00Z",
+    "today_occurrence": {
+        "id": "33333333-3333-3333-3333-333333333333",
+        "parent_id": UUID_STR,
+        "scheduled_date": "2026-08-03",
+        "complete_by": "2026-08-03T23:59:59Z",
+        "status": "done_on_time",
+    },
+}
+
+
+def test_compact_item_fields_keeps_today_occurrence():
+    """The single-item view must carry per-day resolution state.
+
+    ``today_occurrence.status`` is the only field that answers "is this done
+    today?" for a recurring item, so stripping it makes ``get_item`` unable to
+    report done-ness at all.
+    """
+    out = project(_HABIT_WITH_OCCURRENCE, COMPACT_ITEM_FIELDS)
+    assert out["today_occurrence"]["status"] == "done_on_time"
+
+
+def test_compact_item_core_fields_drops_today_occurrence():
+    """List rows must NOT carry per-day state (ADR 2026-08-03, explicit no).
+
+    ``COMPACT_ITEM_CORE_FIELDS`` is also the ``$select`` the client sends to
+    ``GET /items``, so a name added here becomes a wire-level request for a
+    per-row occurrence read on the hottest list endpoint. ``/items`` answers
+    *what exists*, not *what is done today*.
+    """
+    assert "today_occurrence" not in COMPACT_ITEM_CORE_FIELDS
+    out = project(_HABIT_WITH_OCCURRENCE, COMPACT_ITEM_CORE_FIELDS)
+    assert "today_occurrence" not in out

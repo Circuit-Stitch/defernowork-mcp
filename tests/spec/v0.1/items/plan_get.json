@@ -8,18 +8,66 @@
     "query": {
       "required": [],
       "optional": ["date", "tz"],
-      "example": {"date": "2026-05-07"}
+      "example": {"date": "2026-05-07", "tz": "America/Los_Angeles"}
     }
   },
   "responses": [
     {
       "status": 200,
-      "shape": ["any"],
-      "example": []
+      "shape": [
+        {
+          "kind": "string",
+          "type": "string",
+          "id": "uuid",
+          "title": "string",
+          "status": "string",
+          "today_occurrence": {
+            "id": "uuid",
+            "parent_id": "uuid",
+            "scheduled_date": "string",
+            "status": "string",
+            "_required": ["id", "parent_id", "scheduled_date", "status"]
+          },
+          "_required": ["kind", "id", "title", "status"]
+        }
+      ],
+      "example": [
+        {
+          "kind": "task",
+          "type": "task",
+          "id": "00000000-0000-0000-0000-000000000001",
+          "ref": "acme-1",
+          "org_slug": "acme",
+          "sequence": 1,
+          "title": "Demo",
+          "status": "open",
+          "complete_by": "2026-05-07T00:00:00Z"
+        },
+        {
+          "kind": "habit",
+          "type": "habit",
+          "id": "00000000-0000-0000-0000-000000000002",
+          "ref": "acme-2",
+          "org_slug": "acme",
+          "sequence": 2,
+          "title": "Standup",
+          "status": "active",
+          "complete_by": "2026-05-08T00:00:00Z",
+          "today_occurrence": {
+            "id": "00000000-0000-0000-0000-000000000003",
+            "parent_id": "00000000-0000-0000-0000-000000000002",
+            "scheduled_date": "2026-05-07",
+            "complete_by": "2026-05-07T23:59:59Z",
+            "status": "done_on_time",
+            "done_at": "2026-05-07T09:15:00Z"
+          }
+        }
+      ]
     }
   ],
-  "client_method": null,
-  "client_args_from_example": ["date"],
-  "mcp_tool": null,
-  "mcp_tool_args_from_example": []
+  "client_method": "get_daily_plan",
+  "client_args_from_example": ["date", "tz"],
+  "mcp_tool": "get_daily_plan",
+  "mcp_tool_args_from_example": ["date", "tz"],
+  "notes": "The kind-polymorphic plan feed, and the ONLY plan read the MCP performs -- get_daily_plan is wired here, not to tasks.plan_get (which drops every non-Task plan member). Rows are a tagged union: `kind` is task|habit|chore|event, and the three recurring kinds add `today_occurrence`, the per-date resolution state. `today_occurrence` is declared in the shape but deliberately NOT in `_required`, because the same array template is applied to every row and a Task row has no occurrence; the example carries one Task row and one Habit row so both branches are exercised."
 }
